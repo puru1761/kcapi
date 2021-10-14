@@ -102,27 +102,27 @@ mod tests {
             0x6d, 0xbc, 0x18, 0x6f, 0x20,
         ];
 
-        let handle = match crate::md::init("sha1", 0) {
+        let handle = match crate::md::alg_init("sha1", 0) {
             Ok(handle) => handle,
             Err(e) => {
                 panic!("{}", e);
             }
         };
 
-        match crate::md::update(&handle, inp) {
+        match crate::md::alg_update(&handle, inp) {
             Ok(()) => {}
             Err(e) => {
                 panic!("{}", e);
             }
         };
 
-        let digest = match crate::md::digest_final(handle) {
-            Ok(digest) => digest,
+        let alg_digest = match crate::md::alg_final(handle) {
+            Ok(alg_digest) => alg_digest,
             Err(e) => {
                 panic!("{}", e)
             }
         };
-        assert_eq!(digest, DIGEST_EXP)
+        assert_eq!(alg_digest, DIGEST_EXP)
     }
 
     #[test]
@@ -134,28 +134,28 @@ mod tests {
             0x61, 0x18, 0xd4, 0xfe, 0xe0, 0xd6,
         ];
 
-        let handle = match crate::md::init("hmac(sha1)", 0) {
+        let handle = match crate::md::alg_init("hmac(sha1)", 0) {
             Ok(handle) => handle,
             Err(e) => {
                 panic!("{}", e);
             }
         };
 
-        match crate::md::setkey(&handle, key) {
+        match crate::md::alg_setkey(&handle, key) {
             Ok(()) => {}
             Err(e) => {
                 panic!("{}", e);
             }
         }
 
-        match crate::md::update(&handle, inp) {
+        match crate::md::alg_update(&handle, inp) {
             Ok(()) => {}
             Err(e) => {
                 panic!("{}", e);
             }
         };
 
-        let hmac = match crate::md::digest_final(handle) {
+        let hmac = match crate::md::alg_final(handle) {
             Ok(hmac) => hmac,
             Err(e) => {
                 panic!("{}", e)
@@ -165,81 +165,81 @@ mod tests {
     }
 
     #[test]
-    fn test_md_digestsize() {
-        let handle = match crate::md::init("sha1", 0) {
+    fn test_md_alg_digestsize() {
+        let handle = match crate::md::alg_init("sha1", 0) {
             Ok(handle) => handle,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        let digestsize = match crate::md::digestsize(&handle) {
-            Ok(digestsize) => digestsize,
+        let alg_digestsize = match crate::md::alg_digestsize(&handle) {
+            Ok(alg_digestsize) => alg_digestsize,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        assert_eq!(digestsize, SHA1_DIGESTSIZE);
-        crate::md::destroy(handle);
+        assert_eq!(alg_digestsize, SHA1_DIGESTSIZE);
+        crate::md::alg_destroy(handle);
 
-        let handle = match crate::md::init("sha224", 0) {
+        let handle = match crate::md::alg_init("sha224", 0) {
             Ok(handle) => handle,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        let digestsize = match crate::md::digestsize(&handle) {
-            Ok(digestsize) => digestsize,
+        let alg_digestsize = match crate::md::alg_digestsize(&handle) {
+            Ok(alg_digestsize) => alg_digestsize,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        assert_eq!(digestsize, SHA224_DIGESTSIZE);
-        crate::md::destroy(handle);
+        assert_eq!(alg_digestsize, SHA224_DIGESTSIZE);
+        crate::md::alg_destroy(handle);
 
-        let handle = match crate::md::init("sha256", 0) {
+        let handle = match crate::md::alg_init("sha256", 0) {
             Ok(handle) => handle,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        let digestsize = match crate::md::digestsize(&handle) {
-            Ok(digestsize) => digestsize,
+        let alg_digestsize = match crate::md::alg_digestsize(&handle) {
+            Ok(alg_digestsize) => alg_digestsize,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        assert_eq!(digestsize, SHA256_DIGESTSIZE);
-        crate::md::destroy(handle);
+        assert_eq!(alg_digestsize, SHA256_DIGESTSIZE);
+        crate::md::alg_destroy(handle);
 
-        let handle = match crate::md::init("sha384", 0) {
+        let handle = match crate::md::alg_init("sha384", 0) {
             Ok(handle) => handle,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        let digestsize = match crate::md::digestsize(&handle) {
-            Ok(digestsize) => digestsize,
+        let alg_digestsize = match crate::md::alg_digestsize(&handle) {
+            Ok(alg_digestsize) => alg_digestsize,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        assert_eq!(digestsize, SHA384_DIGESTSIZE);
-        crate::md::destroy(handle);
+        assert_eq!(alg_digestsize, SHA384_DIGESTSIZE);
+        crate::md::alg_destroy(handle);
 
-        let handle = match crate::md::init("sha512", 0) {
+        let handle = match crate::md::alg_init("sha512", 0) {
             Ok(handle) => handle,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        let digestsize = match crate::md::digestsize(&handle) {
-            Ok(digestsize) => digestsize,
+        let alg_digestsize = match crate::md::alg_digestsize(&handle) {
+            Ok(alg_digestsize) => alg_digestsize,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        assert_eq!(digestsize, SHA512_DIGESTSIZE);
-        crate::md::destroy(handle);
+        assert_eq!(alg_digestsize, SHA512_DIGESTSIZE);
+        crate::md::alg_destroy(handle);
     }
 
     #[test]
