@@ -34,7 +34,9 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::md::{SHA1_DIGESTSIZE, SHA224_DIGESTSIZE, SHA256_DIGESTSIZE, SHA384_DIGESTSIZE, SHA512_DIGESTSIZE};
+    use crate::md::{
+        SHA1_DIGESTSIZE, SHA224_DIGESTSIZE, SHA256_DIGESTSIZE, SHA384_DIGESTSIZE, SHA512_DIGESTSIZE,
+    };
 
     #[test]
     fn test_md_digest_oneshot() {
@@ -108,7 +110,7 @@ mod tests {
         };
 
         match crate::md::update(&handle, inp) {
-            Ok(()) => {},
+            Ok(()) => {}
             Err(e) => {
                 panic!("{}", e);
             }
@@ -147,7 +149,7 @@ mod tests {
         }
 
         match crate::md::update(&handle, inp) {
-            Ok(()) => {},
+            Ok(()) => {}
             Err(e) => {
                 panic!("{}", e);
             }

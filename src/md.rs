@@ -34,9 +34,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{
-    KcapiError, KcapiHandle, KcapiResult, BITS_PER_BYTE,
-};
+use crate::{KcapiError, KcapiHandle, KcapiResult, BITS_PER_BYTE};
 
 const SHA1_BITSIZE: usize = 160;
 const SHA224_BITSIZE: usize = 224;
@@ -50,7 +48,6 @@ pub const SHA256_DIGESTSIZE: usize = SHA256_BITSIZE / BITS_PER_BYTE;
 pub const SHA384_DIGESTSIZE: usize = SHA384_BITSIZE / BITS_PER_BYTE;
 pub const SHA512_DIGESTSIZE: usize = SHA512_BITSIZE / BITS_PER_BYTE;
 
-
 pub fn init(algorithm: &str, flags: u32) -> KcapiResult<KcapiHandle> {
     let mut handle = KcapiHandle::new(algorithm);
     let alg = CString::new(algorithm).expect("Failed to convert to CString");
@@ -60,7 +57,9 @@ pub fn init(algorithm: &str, flags: u32) -> KcapiResult<KcapiHandle> {
         ret = kcapi_sys::kcapi_md_init(&mut handle.handle as *mut _, alg.as_ptr(), flags);
         if ret < 0 {
             return Err(KcapiError {
-                code: ret.try_into().expect("Failed to convert i32 to kcapi_sys::ssize_t"),
+                code: ret
+                    .try_into()
+                    .expect("Failed to convert i32 to kcapi_sys::ssize_t"),
                 message: "Failed to init Message Digest Handle".to_string(),
             });
         }
@@ -75,7 +74,9 @@ pub fn setkey(handle: &KcapiHandle, key: Vec<u8>) -> KcapiResult<()> {
         ret = kcapi_sys::kcapi_md_setkey(handle.handle, key.as_ptr(), key.len() as u32);
         if ret < 0 {
             return Err(KcapiError {
-                code: ret.try_into().expect("Failed to convert i32 to kcapi_sys::ssize_t"),
+                code: ret
+                    .try_into()
+                    .expect("Failed to convert i32 to kcapi_sys::ssize_t"),
                 message: "Failed to set key for keyed message digest".to_string(),
             });
         }
@@ -116,8 +117,7 @@ pub fn digestsize(handle: &KcapiHandle) -> KcapiResult<usize> {
         if ret == 0 {
             return Err(KcapiError {
                 code: -1,
-                message:
-                    format!("Failed to obtain digestsize for '{}'", handle.algorithm),
+                message: format!("Failed to obtain digestsize for '{}'", handle.algorithm),
             });
         }
         digest_size = ret.try_into().expect("Failed to convert u32 into usize");
