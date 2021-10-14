@@ -73,4 +73,5 @@ impl KcapiHandle {
     }
 }
 
+pub mod md;
 mod test;
