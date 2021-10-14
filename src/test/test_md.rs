@@ -45,14 +45,8 @@ mod tests {
             0x19, 0xb1, 0x92, 0x8d, 0x58, 0xa2, 0x3, 0xd, 0x8, 0x2, 0x3f, 0x3d, 0x70, 0x54, 0x51,
             0x6d, 0xbc, 0x18, 0x6f, 0x20,
         ];
-        let handle = match crate::md::init("sha1", 0) {
-            Ok(handle) => handle,
-            Err(e) => {
-                panic!("{}", e);
-            }
-        };
 
-        let digest = match crate::md::digest(handle, inp) {
+        let digest = match crate::md::digest("sha1", inp, 0) {
             Ok(digest) => digest,
             Err(e) => {
                 panic!("{}", e);
@@ -70,27 +64,12 @@ mod tests {
             0x61, 0x18, 0xd4, 0xfe, 0xe0, 0xd6,
         ];
 
-        let handle = match crate::md::init("hmac(sha1)", 0) {
-            Ok(handle) => handle,
+        let hmac = match crate::md::keyed_digest("hmac(sha1)", key, inp, 0) {
+            Ok(hmac) => hmac,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-
-        match crate::md::setkey(&handle, key) {
-            Ok(()) => {}
-            Err(e) => {
-                panic!("{}", e);
-            }
-        }
-
-        let hmac = match crate::md::digest(handle, inp) {
-            Ok(digest) => digest,
-            Err(e) => {
-                panic!("{}", e);
-            }
-        };
-
         assert_eq!(hmac, HMAC_EXP);
     }
 

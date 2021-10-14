@@ -174,6 +174,23 @@ pub fn alg_digest(handle: KcapiHandle, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
     Ok(output)
 }
 
+pub fn digest(alg: &str, input: Vec<u8>, flags: u32) -> KcapiResult<Vec<u8>> {
+    let handle = crate::md::alg_init(alg, flags)?;
+    crate::md::alg_update(&handle, input)?;
+    let output = crate::md::alg_final(handle)?;
+
+    Ok(output)
+}
+
+pub fn keyed_digest(alg: &str, key: Vec<u8>, input: Vec<u8>, flags: u32) -> KcapiResult<Vec<u8>> {
+    let handle = crate::md::alg_init(alg, flags)?;
+    crate::md::alg_setkey(&handle, key)?;
+    crate::md::alg_update(&handle, input)?;
+    let output = crate::md::alg_final(handle)?;
+
+    Ok(output)
+}
+
 pub fn sha1(input: Vec<u8>) -> KcapiResult<[u8; SHA1_DIGESTSIZE]> {
     let mut digest = [0u8; SHA1_DIGESTSIZE];
 
