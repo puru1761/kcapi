@@ -33,3 +33,4 @@
  */
 
 mod test_md;
+mod test_skcipher;
