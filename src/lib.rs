@@ -36,6 +36,10 @@ use std::fmt;
 
 const BITS_PER_BYTE: usize = 8;
 
+pub const KCAPI_ACCESS_HEURISTIC: u32 = kcapi_sys::KCAPI_ACCESS_HEURISTIC;
+pub const KCAPI_ACCESS_VMSPLICE: u32 = kcapi_sys::KCAPI_ACCESS_VMSPLICE;
+pub const KCAPI_ACCESS_SENDMSG: u32 = kcapi_sys::KCAPI_ACCESS_SENDMSG;
+
 pub type KcapiResult<T> = std::result::Result<T, KcapiError>;
 
 #[derive(Debug, Clone)]
