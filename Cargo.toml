@@ -7,3 +7,4 @@ edition = "2018"
 
 [dependencies]
 kcapi-sys = { path = "kcapi-sys" }
+libc = "*"
