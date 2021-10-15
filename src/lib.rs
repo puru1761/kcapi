@@ -78,4 +78,5 @@ impl KcapiHandle {
 }
 
 pub mod md;
+pub mod skcipher;
 mod test;
