@@ -90,6 +90,7 @@ impl KcapiHandle {
 
 pub mod util;
 
+pub mod aead;
 pub mod md;
 pub mod rng;
 pub mod skcipher;
