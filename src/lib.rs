@@ -40,6 +40,15 @@ pub const KCAPI_ACCESS_HEURISTIC: u32 = kcapi_sys::KCAPI_ACCESS_HEURISTIC;
 pub const KCAPI_ACCESS_VMSPLICE: u32 = kcapi_sys::KCAPI_ACCESS_VMSPLICE;
 pub const KCAPI_ACCESS_SENDMSG: u32 = kcapi_sys::KCAPI_ACCESS_SENDMSG;
 
+#[derive(Debug, Clone, Copy)]
+pub enum KcapiAlgType {
+    Hash = 1,
+    SKCipher,
+    AEAD,
+    AKCipher,
+    RNG,
+}
+
 pub type KcapiResult<T> = std::result::Result<T, KcapiError>;
 
 #[derive(Debug, Clone)]
@@ -63,15 +72,17 @@ struct kcapi_handle {
 #[derive(Debug, Clone)]
 pub struct KcapiHandle {
     algorithm: String,
+    alg_type: KcapiAlgType,
     handle: *mut kcapi_sys::kcapi_handle,
 }
 
 impl KcapiHandle {
-    fn new(alg: &str) -> Self {
+    fn new(alg: &str, alg_type: KcapiAlgType) -> Self {
         let handle = Box::into_raw(Box::new(kcapi_handle { _unused: [0u8; 0] }))
             as *mut kcapi_sys::kcapi_handle;
         KcapiHandle {
             algorithm: alg.to_string(),
+            alg_type,
             handle,
         }
     }

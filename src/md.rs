@@ -49,7 +49,7 @@ pub const SHA384_DIGESTSIZE: usize = SHA384_BITSIZE / BITS_PER_BYTE;
 pub const SHA512_DIGESTSIZE: usize = SHA512_BITSIZE / BITS_PER_BYTE;
 
 pub fn alg_init(algorithm: &str, flags: u32) -> KcapiResult<KcapiHandle> {
-    let mut handle = KcapiHandle::new(algorithm);
+    let mut handle = KcapiHandle::new(algorithm, crate::KcapiAlgType::Hash);
     let alg = CString::new(algorithm).expect("Failed to convert to CString");
 
     let ret: i32;

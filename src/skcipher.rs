@@ -107,7 +107,7 @@ fn check_blocksize(handle: &KcapiHandle, input: &[u8]) -> KcapiResult<()> {
 }
 
 pub fn alg_init(algorithm: &str, flags: u32) -> KcapiResult<KcapiHandle> {
-    let mut handle = KcapiHandle::new(algorithm);
+    let mut handle = KcapiHandle::new(algorithm, crate::KcapiAlgType::SKCipher);
     let alg = CString::new(algorithm).expect("Failed to create new CString");
 
     let ret: ::std::os::raw::c_int;

@@ -38,7 +38,7 @@ use crate::{KcapiError, KcapiHandle, KcapiResult};
 
 pub fn init(algorithm: &str, flags: u32) -> KcapiResult<KcapiHandle> {
     let alg = CString::new(algorithm).expect("Failed to allocate a CString");
-    let mut handle = KcapiHandle::new(algorithm);
+    let mut handle = KcapiHandle::new(algorithm, crate::KcapiAlgType::RNG);
 
     unsafe {
         let ret = kcapi_sys::kcapi_rng_init(&mut handle.handle as *mut _, alg.as_ptr(), flags);
