@@ -230,7 +230,7 @@ pub fn alg_setassoclen(handle: &KcapiHandle, assoclen: usize) {
 }
 
 fn aead_check_input(handle: &KcapiHandle, iv: &[u8], taglen: &usize) -> KcapiResult<()> {
-    let ivsize = crate::aead::alg_ivsize(&handle)?;
+    let ivsize = crate::aead::alg_ivsize(handle)?;
     if iv.len() != ivsize {
         return Err(KcapiError {
             code: -libc::EINVAL as i64,
@@ -240,7 +240,7 @@ fn aead_check_input(handle: &KcapiHandle, iv: &[u8], taglen: &usize) -> KcapiRes
             ),
         });
     }
-    let max_taglen = crate::aead::alg_authsize(&handle)?;
+    let max_taglen = crate::aead::alg_authsize(handle)?;
     if taglen > &max_taglen {
         return Err(KcapiError {
             code: -libc::EINVAL as i64,
