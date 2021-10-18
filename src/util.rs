@@ -32,65 +32,23 @@
  *
  */
 
-use std::fmt;
+use crate::{KcapiAlgType, KcapiError, KcapiHandle, KcapiResult};
 
-const BITS_PER_BYTE: usize = 8;
+pub fn pad_iv(handle: &KcapiHandle, iv: Vec<u8>) -> KcapiResult<Vec<u8>> {
+    let mut newiv: Vec<u8>;
 
-pub const KCAPI_ACCESS_HEURISTIC: u32 = kcapi_sys::KCAPI_ACCESS_HEURISTIC;
-pub const KCAPI_ACCESS_VMSPLICE: u32 = kcapi_sys::KCAPI_ACCESS_VMSPLICE;
-pub const KCAPI_ACCESS_SENDMSG: u32 = kcapi_sys::KCAPI_ACCESS_SENDMSG;
-
-#[derive(Debug, Clone, Copy)]
-pub enum KcapiAlgType {
-    Hash = 1,
-    SKCipher,
-    AEAD,
-    AKCipher,
-    RNG,
-}
-
-pub type KcapiResult<T> = std::result::Result<T, KcapiError>;
-
-#[derive(Debug, Clone)]
-pub struct KcapiError {
-    code: i64,
-    message: String,
-}
-
-impl fmt::Display for KcapiError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} ({})", &self.message, &self.code)
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy)]
-struct kcapi_handle {
-    _unused: [u8; 0],
-}
-
-#[derive(Debug, Clone)]
-pub struct KcapiHandle {
-    algorithm: String,
-    alg_type: KcapiAlgType,
-    handle: *mut kcapi_sys::kcapi_handle,
-}
-
-impl KcapiHandle {
-    fn new(alg: &str, alg_type: KcapiAlgType) -> Self {
-        let handle = Box::into_raw(Box::new(kcapi_handle { _unused: [0u8; 0] }))
-            as *mut kcapi_sys::kcapi_handle;
-        KcapiHandle {
-            algorithm: alg.to_string(),
-            alg_type,
-            handle,
+    let ivsize = match handle.alg_type {
+        KcapiAlgType::AEAD => crate::aead::alg_ivsize(handle)?,
+        KcapiAlgType::SKCipher => crate::skcipher::alg_ivsize(handle)?,
+        _ => {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!("Cannot pad IV for algorithm '{}'", handle.algorithm),
+            });
         }
-    }
+    };
+    newiv = vec![0u8; ivsize];
+    newiv[..iv.len()].clone_from_slice(&iv);
+
+    Ok(newiv)
 }
-
-pub mod util;
-
-pub mod md;
-pub mod rng;
-pub mod skcipher;
-mod test;
