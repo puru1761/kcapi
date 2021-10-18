@@ -32,7 +32,7 @@
  *
  */
 
- #[cfg(test)]
+#[cfg(test)]
 mod tests {
     const RNG_GET_BYTECOUNT: usize = 1024;
     #[test]
@@ -64,7 +64,7 @@ mod tests {
         };
 
         match crate::rng::seed(&handle, vec![0u8; 16]) {
-            Ok(()) => {},
+            Ok(()) => {}
             Err(e) => panic!("{}", e),
         };
 
@@ -94,7 +94,7 @@ mod tests {
         let _out = match crate::rng::generate(&handle, RNG_GET_BYTECOUNT) {
             Ok(_buf) => {
                 panic!("[BUG] RNG generated randomness without being seeded.")
-            },
+            }
             Err(_e) => {}
         };
     }
