@@ -21,11 +21,11 @@ crate in your Rust sources:
 
 The major modules provided by this crate are:
 
-#. `kcapi::md` - Provides message digest capabilities
-#. `kcapi::skcipher` - Provides symmetric key ciphers
-#. `kcapi::aead` - Provides Authenticated Encryption with Associated Data (AEAD) Ciphers
-#. `kcapi::rng` - Provides Random Number Generation support.
-#. `kcapi::akcipher` - Provides Asymmetric key ciphers.
+* `kcapi::md` - Provides message digest capabilities
+* `kcapi::skcipher` - Provides symmetric key ciphers
+* `kcapi::aead` - Provides Authenticated Encryption with Associated Data (AEAD) Ciphers
+* `kcapi::rng` - Provides Random Number Generation support.
+* `kcapi::akcipher` - Provides Asymmetric key ciphers.
 
 A simple example for using the convenience hash API is given below:
 
