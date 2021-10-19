@@ -1,5 +1,7 @@
 # KCAPI - The Official High-level Rust Bindings for libkcapi
 
+![CI Badge](https://github.com/puru1761/kcapi/actions/workflows/main.yml/badge.svg)
+
 This repository contains the rust sources for the official high-level rust
 bindings for `libkcapi` - A userspace interface to the Linux Kernel's
 Cryptographic API (KCAPI). These bindings are based on top of the `kcapi-sys`
