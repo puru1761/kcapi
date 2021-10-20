@@ -40,6 +40,8 @@ pub const KCAPI_ACCESS_HEURISTIC: u32 = kcapi_sys::KCAPI_ACCESS_HEURISTIC;
 pub const KCAPI_ACCESS_VMSPLICE: u32 = kcapi_sys::KCAPI_ACCESS_VMSPLICE;
 pub const KCAPI_ACCESS_SENDMSG: u32 = kcapi_sys::KCAPI_ACCESS_SENDMSG;
 
+pub const KCAPI_INIT_AIO: u32 = kcapi_sys::KCAPI_INIT_AIO;
+
 #[derive(Debug, Clone, Copy)]
 pub enum KcapiAlgType {
     Hash = 1,
@@ -85,6 +87,27 @@ impl KcapiHandle {
             alg_type,
             handle,
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct IOVec {
+    iovec: Vec<kcapi_sys::iovec>,
+    iovlen: usize,
+}
+
+impl IOVec {
+    fn new(iov: &mut Vec<Vec<u8>>, iovlen: usize) -> Self {
+        let iovlen = iovlen;
+        let mut iovec = Vec::new();
+        for i in 0..iovlen {
+            iovec.push(kcapi_sys::iovec {
+                iov_base: iov[i].as_mut_ptr() as *mut ::std::os::raw::c_void,
+                iov_len: iov[i].len() as kcapi_sys::size_t,
+            });
+        }
+
+        IOVec { iovec, iovlen }
     }
 }
 
