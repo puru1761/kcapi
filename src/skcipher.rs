@@ -183,6 +183,40 @@ pub fn alg_encrypt(
     Ok(ct)
 }
 
+pub fn alg_encrypt_aio(
+    handle: KcapiHandle,
+    pt: Vec<Vec<u8>>,
+    iovlen: usize,
+    iv: Vec<u8>,
+    access: u32,
+) -> KcapiResult<Vec<Vec<u8>>> {
+    let mut ptvec = pt.clone();
+    let mut ctvec = pt.clone();
+    let mut iniov = IOVec::new(&mut ptvec, iovlen);
+    let mut outiov = IOVec::new(&mut ctvec, iovlen);
+    unsafe {
+        let ret = kcapi_sys::kcapi_cipher_encrypt_aio(
+            handle.handle,
+            iniov.iovec.as_mut_ptr(),
+            outiov.iovec.as_mut_ptr(),
+            iovlen as kcapi_sys::size_t,
+            iv.as_ptr(),
+            access as ::std::os::raw::c_int,
+        );
+        if ret < 0 {
+            return Err(KcapiError {
+                code: ret,
+                message: format!(
+                    "Failed asymmetric cipher operation for algorithm '{}'",
+                    handle.algorithm
+                ),
+            });
+        }
+    }
+
+    Ok(ctvec)
+}
+
 pub fn alg_decrypt(
     handle: KcapiHandle,
     ct: Vec<u8>,
@@ -220,6 +254,40 @@ pub fn alg_decrypt(
     Ok(pt)
 }
 
+pub fn alg_decrypt_aio(
+    handle: KcapiHandle,
+    ct: Vec<Vec<u8>>,
+    iovlen: usize,
+    iv: Vec<u8>,
+    access: u32,
+) -> KcapiResult<Vec<Vec<u8>>> {
+    let mut ctvec = ct.clone();
+    let mut ptvec = ct.clone();
+    let mut iniov = IOVec::new(&mut ctvec, iovlen);
+    let mut outiov = IOVec::new(&mut ptvec, iovlen);
+    unsafe {
+        let ret = kcapi_sys::kcapi_cipher_decrypt_aio(
+            handle.handle,
+            iniov.iovec.as_mut_ptr(),
+            outiov.iovec.as_mut_ptr(),
+            iovlen as kcapi_sys::size_t,
+            iv.as_ptr(),
+            access as ::std::os::raw::c_int,
+        );
+        if ret < 0 {
+            return Err(KcapiError {
+                code: ret,
+                message: format!(
+                    "Failed asymmetric cipher operation for algorithm '{}'",
+                    handle.algorithm
+                ),
+            });
+        }
+    }
+
+    Ok(ptvec)
+}
+
 pub fn encrypt(
     alg: &str,
     key: Vec<u8>,
@@ -234,6 +302,21 @@ pub fn encrypt(
     Ok(ct)
 }
 
+pub fn encrypt_aio(
+    alg: &str,
+    key: Vec<u8>,
+    pt: Vec<Vec<u8>>,
+    iv: Vec<u8>,
+    access: u32,
+) -> KcapiResult<Vec<Vec<u8>>> {
+    let iovlen = pt.len();
+    let handle = crate::skcipher::alg_init(alg, KCAPI_INIT_AIO)?;
+    crate::skcipher::alg_setkey(&handle, key)?;
+    let ct = crate::skcipher::alg_encrypt_aio(handle, pt, iovlen, iv, access)?;
+
+    Ok(ct)
+}
+
 pub fn decrypt(
     alg: &str,
     key: Vec<u8>,
@@ -244,6 +327,21 @@ pub fn decrypt(
     let handle = crate::skcipher::alg_init(alg, !KCAPI_INIT_AIO)?;
     crate::skcipher::alg_setkey(&handle, key)?;
     let pt = crate::skcipher::alg_decrypt(handle, ct, iv, access)?;
+
+    Ok(pt)
+}
+
+pub fn decrypt_aio(
+    alg: &str,
+    key: Vec<u8>,
+    ct: Vec<Vec<u8>>,
+    iv: Vec<u8>,
+    access: u32,
+) -> KcapiResult<Vec<Vec<u8>>> {
+    let iovlen = ct.len();
+    let handle = crate::skcipher::alg_init(alg, KCAPI_INIT_AIO)?;
+    crate::skcipher::alg_setkey(&handle, key)?;
+    let pt = crate::skcipher::alg_decrypt_aio(handle, ct, iovlen, iv, access)?;
 
     Ok(pt)
 }
