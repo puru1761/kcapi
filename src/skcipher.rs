@@ -146,6 +146,158 @@ pub fn alg_setkey(handle: &KcapiHandle, key: Vec<u8>) -> KcapiResult<()> {
     Ok(())
 }
 
+pub fn alg_stream_init_enc(
+    alg: &str,
+    key: Vec<u8>,
+    iv: Vec<u8>,
+    pt: Vec<Vec<u8>>,
+) -> KcapiResult<KcapiHandle> {
+    let handle = crate::skcipher::alg_init(alg, !KCAPI_INIT_AIO)?;
+    crate::skcipher::alg_setkey(&handle, key)?;
+
+    let iovlen = pt.len();
+    let mut ptvec = pt;
+    let mut iov = IOVec::new(&mut ptvec, iovlen);
+    if iovlen == 0 {
+        return Err(KcapiError {
+            code: -libc::EINVAL as i64,
+            message:
+                format!("Invalid initial plaintext of length {} to initialize stream cipher handle for algorithm '{}'", iovlen, handle.algorithm),
+        });
+    }
+
+    unsafe {
+        let ret = kcapi_sys::kcapi_cipher_stream_init_enc(
+            handle.handle,
+            iv.as_ptr(),
+            iov.iovec.as_mut_ptr(),
+            iovlen as kcapi_sys::size_t,
+        );
+        if ret < 0 {
+            return Err(KcapiError {
+                code: ret,
+                message: format!(
+                    "Failed to initialize stream cipher handle for algorithm '{}'",
+                    handle.algorithm
+                ),
+            });
+        }
+    }
+    Ok(handle)
+}
+
+pub fn alg_stream_init_dec(
+    alg: &str,
+    key: Vec<u8>,
+    iv: Vec<u8>,
+    ct: Vec<Vec<u8>>,
+) -> KcapiResult<KcapiHandle> {
+    let handle = crate::skcipher::alg_init(alg, !KCAPI_INIT_AIO)?;
+    crate::skcipher::alg_setkey(&handle, key)?;
+
+    let iovlen = ct.len();
+    let mut ctvec = ct;
+    let mut iov = IOVec::new(&mut ctvec, iovlen);
+    if iovlen == 0 {
+        return Err(KcapiError {
+            code: -libc::EINVAL as i64,
+            message:
+                format!("Invalid initial plaintext of length {} to initialize stream cipher handle for algorithm '{}'", iovlen, handle.algorithm),
+        });
+    }
+
+    unsafe {
+        let ret = kcapi_sys::kcapi_cipher_stream_init_dec(
+            handle.handle,
+            iv.as_ptr(),
+            iov.iovec.as_mut_ptr(),
+            iovlen as kcapi_sys::size_t,
+        );
+        if ret < 0 {
+            return Err(KcapiError {
+                code: ret,
+                message: format!(
+                    "Failed to initialize stream cipher handle for algorithm '{}'",
+                    handle.algorithm
+                ),
+            });
+        }
+    }
+    Ok(handle)
+}
+
+pub fn alg_stream_update(handle: &KcapiHandle, input: Vec<Vec<u8>>) -> KcapiResult<()> {
+    let iovlen = input.len();
+    let mut ivec = input;
+    let mut iov = IOVec::new(&mut ivec, iovlen);
+
+    unsafe {
+        let ret = kcapi_sys::kcapi_cipher_stream_update(
+            handle.handle,
+            iov.iovec.as_mut_ptr(),
+            iovlen as kcapi_sys::size_t,
+        );
+        if ret < 0 {
+            return Err(KcapiError {
+                code: ret,
+                message: format!(
+                    "Failed to update stream cipher handle for algorithm '{}'",
+                    handle.algorithm
+                ),
+            });
+        }
+    }
+    Ok(())
+}
+
+pub fn alg_stream_update_last(handle: &KcapiHandle, input: Vec<Vec<u8>>) -> KcapiResult<()> {
+    let iovlen = input.len();
+    let mut ivec = input;
+    let mut iov = IOVec::new(&mut ivec, iovlen);
+
+    unsafe {
+        let ret = kcapi_sys::kcapi_cipher_stream_update_last(
+            handle.handle,
+            iov.iovec.as_mut_ptr(),
+            iovlen as kcapi_sys::size_t,
+        );
+        if ret < 0 {
+            return Err(KcapiError {
+                code: ret,
+                message: format!(
+                    "Failed to update final stream cipher handle for algorithm '{}'",
+                    handle.algorithm
+                ),
+            });
+        }
+    }
+    Ok(())
+}
+
+pub fn alg_stream_op(handle: &KcapiHandle, output: Vec<Vec<u8>>) -> KcapiResult<Vec<Vec<u8>>> {
+    let iovlen = output.len();
+    let mut out = output;
+    let mut iov = IOVec::new(&mut out, iovlen);
+
+    unsafe {
+        let ret = kcapi_sys::kcapi_cipher_stream_op(
+            handle.handle,
+            iov.iovec.as_mut_ptr(),
+            iovlen as kcapi_sys::size_t,
+        );
+        if ret < 0 {
+            return Err(KcapiError {
+                code: ret,
+                message: format!(
+                    "Failed to obtain stream cipher output for algorithm '{}'",
+                    handle.algorithm
+                ),
+            });
+        }
+    }
+    Ok(out)
+}
+
 pub fn alg_encrypt(
     handle: KcapiHandle,
     pt: Vec<u8>,
