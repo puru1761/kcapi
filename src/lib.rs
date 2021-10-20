@@ -100,10 +100,10 @@ impl IOVec {
     fn new(iov: &mut Vec<Vec<u8>>, iovlen: usize) -> Self {
         let iovlen = iovlen;
         let mut iovec = Vec::new();
-        for i in 0..iovlen {
+        for i in iov.iter_mut().take(iovlen) {
             iovec.push(kcapi_sys::iovec {
-                iov_base: iov[i].as_mut_ptr() as *mut ::std::os::raw::c_void,
-                iov_len: iov[i].len() as kcapi_sys::size_t,
+                iov_base: i.as_mut_ptr() as *mut ::std::os::raw::c_void,
+                iov_len: i.len() as kcapi_sys::size_t,
             });
         }
 

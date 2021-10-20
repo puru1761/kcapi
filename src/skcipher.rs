@@ -191,7 +191,7 @@ pub fn alg_encrypt_aio(
     access: u32,
 ) -> KcapiResult<Vec<Vec<u8>>> {
     let mut ptvec = pt.clone();
-    let mut ctvec = pt.clone();
+    let mut ctvec = pt;
     let mut iniov = IOVec::new(&mut ptvec, iovlen);
     let mut outiov = IOVec::new(&mut ctvec, iovlen);
     unsafe {
@@ -262,7 +262,7 @@ pub fn alg_decrypt_aio(
     access: u32,
 ) -> KcapiResult<Vec<Vec<u8>>> {
     let mut ctvec = ct.clone();
-    let mut ptvec = ct.clone();
+    let mut ptvec = ct;
     let mut iniov = IOVec::new(&mut ctvec, iovlen);
     let mut outiov = IOVec::new(&mut ptvec, iovlen);
     unsafe {
