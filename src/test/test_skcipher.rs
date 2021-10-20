@@ -401,8 +401,7 @@ mod tests {
             0x8f, 0x65,
         ];
 
-        let ct = match crate::skcipher::encrypt("xts(aes)", key, pt, iv, KCAPI_ACCESS_HEURISTIC, 0)
-        {
+        let ct = match crate::skcipher::encrypt("xts(aes)", key, pt, iv, KCAPI_ACCESS_HEURISTIC) {
             Ok(ct) => ct,
             Err(e) => {
                 panic!("{}", e);
@@ -422,7 +421,7 @@ mod tests {
 
         const PT_EXP: [u8; AES_BLOCKSIZE] = [0x41u8; AES_BLOCKSIZE];
 
-        let pt = match crate::skcipher::decrypt("xts(aes)", key, ct, iv, KCAPI_ACCESS_HEURISTIC, 0)
+        let pt = match crate::skcipher::decrypt("xts(aes)", key, ct, iv, KCAPI_ACCESS_HEURISTIC)
         {
             Ok(pt) => pt,
             Err(e) => {
@@ -443,8 +442,7 @@ mod tests {
             0xea, 0x52,
         ];
 
-        let ct = match crate::skcipher::encrypt("xts(aes)", key, pt, iv, KCAPI_ACCESS_HEURISTIC, 0)
-        {
+        let ct = match crate::skcipher::encrypt("xts(aes)", key, pt, iv, KCAPI_ACCESS_HEURISTIC) {
             Ok(ct) => ct,
             Err(e) => {
                 panic!("{}", e);
@@ -464,7 +462,7 @@ mod tests {
 
         const PT_EXP: [u8; AES_BLOCKSIZE] = [0x41u8; AES_BLOCKSIZE];
 
-        let pt = match crate::skcipher::decrypt("xts(aes)", key, ct, iv, KCAPI_ACCESS_HEURISTIC, 0)
+        let pt = match crate::skcipher::decrypt("xts(aes)", key, ct, iv, KCAPI_ACCESS_HEURISTIC)
         {
             Ok(pt) => pt,
             Err(e) => {

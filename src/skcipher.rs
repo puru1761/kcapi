@@ -34,7 +34,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{KcapiError, KcapiHandle, KcapiResult, BITS_PER_BYTE};
+use crate::{IOVec, KcapiError, KcapiHandle, KcapiResult, BITS_PER_BYTE, KCAPI_INIT_AIO};
 
 const AES_BLOCKSIZE_BITS: usize = 128;
 const AES128_KEYSIZE_BITS: usize = 128;
@@ -226,9 +226,8 @@ pub fn encrypt(
     pt: Vec<u8>,
     iv: Vec<u8>,
     access: u32,
-    flags: u32,
 ) -> KcapiResult<Vec<u8>> {
-    let handle = crate::skcipher::alg_init(alg, flags)?;
+    let handle = crate::skcipher::alg_init(alg, !KCAPI_INIT_AIO)?;
     crate::skcipher::alg_setkey(&handle, key)?;
     let ct = crate::skcipher::alg_encrypt(handle, pt, iv, access)?;
 
@@ -241,9 +240,8 @@ pub fn decrypt(
     ct: Vec<u8>,
     iv: Vec<u8>,
     access: u32,
-    flags: u32,
 ) -> KcapiResult<Vec<u8>> {
-    let handle = crate::skcipher::alg_init(alg, flags)?;
+    let handle = crate::skcipher::alg_init(alg, !KCAPI_INIT_AIO)?;
     crate::skcipher::alg_setkey(&handle, key)?;
     let pt = crate::skcipher::alg_decrypt(handle, ct, iv, access)?;
 
