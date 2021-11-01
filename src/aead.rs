@@ -34,7 +34,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{KcapiAlgType, KcapiError, KcapiHandle, KcapiResult};
+use crate::{KcapiAlgType, KcapiError, KcapiHandle, KcapiResult, skcipher::AES_BLOCKSIZE};
 
 pub const AEAD_ENCRYPT: u32 = 0;
 pub const AEAD_DECRYPT: u32 = 1;
@@ -227,6 +227,23 @@ pub fn alg_setassoclen(handle: &KcapiHandle, assoclen: usize) {
     unsafe {
         kcapi_sys::kcapi_aead_setassoclen(handle.handle, assoclen as kcapi_sys::size_t);
     }
+}
+
+pub fn ccm_nonce_to_iv(nonce: Vec<u8>) -> KcapiResult<Vec<u8>> {
+    let mut iv = vec![0u8; AES_BLOCKSIZE];
+
+    if nonce.len() > AES_BLOCKSIZE - 2 {
+        return Err(KcapiError {
+            code: -libc::EINVAL as i64,
+            message:
+                format!("Invalid input nonce length for AES-CCM"),
+        });
+    }
+
+    iv[0] = (AES_BLOCKSIZE - 2 - nonce.len()) as u8;
+    iv[1..(1 + nonce.len())].clone_from_slice(&nonce);
+
+    Ok(iv)
 }
 
 fn aead_check_input(handle: &KcapiHandle, iv: &[u8], taglen: &usize) -> KcapiResult<()> {
