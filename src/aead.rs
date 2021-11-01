@@ -34,7 +34,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{KcapiAlgType, KcapiError, KcapiHandle, KcapiResult, skcipher::AES_BLOCKSIZE};
+use crate::{skcipher::AES_BLOCKSIZE, KcapiAlgType, KcapiError, KcapiHandle, KcapiResult};
 
 pub const AEAD_ENCRYPT: u32 = 0;
 pub const AEAD_DECRYPT: u32 = 1;
@@ -235,8 +235,7 @@ pub fn ccm_nonce_to_iv(nonce: Vec<u8>) -> KcapiResult<Vec<u8>> {
     if nonce.len() > AES_BLOCKSIZE - 2 {
         return Err(KcapiError {
             code: -libc::EINVAL as i64,
-            message:
-                format!("Invalid input nonce length for AES-CCM"),
+            message: format!("Invalid input nonce length for AES-CCM"),
         });
     }
 
