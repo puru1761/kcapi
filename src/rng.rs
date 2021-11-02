@@ -34,65 +34,80 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{KcapiError, KcapiHandle, KcapiResult};
+use crate::{KcapiError, KcapiResult};
 
-pub fn init(algorithm: &str, flags: u32) -> KcapiResult<KcapiHandle> {
-    let alg = CString::new(algorithm).expect("Failed to allocate a CString");
-    let mut handle = KcapiHandle::new(algorithm, crate::KcapiAlgType::RNG);
-
-    unsafe {
-        let ret = kcapi_sys::kcapi_rng_init(&mut handle.handle as *mut _, alg.as_ptr(), flags);
-        if ret < 0 {
-            return Err(KcapiError {
-                code: ret.into(),
-                message: format!(
-                    "Failed to initialize RNG handle for algorithm '{}'",
-                    algorithm
-                ),
-            });
-        }
-    }
-    Ok(handle)
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct KcapiRNG {
+    handle: *mut kcapi_sys::kcapi_handle,
+    pub algorithm: String,
+    pub seedsize: usize,
 }
 
-pub fn seed(handle: &KcapiHandle, seed: Vec<u8>) -> KcapiResult<()> {
-    let mut seed_data = seed;
-    unsafe {
-        let ret = kcapi_sys::kcapi_rng_seed(
-            handle.handle,
-            seed_data.as_mut_ptr(),
-            seed_data.len() as u32,
-        );
-        if ret < 0 {
-            return Err(KcapiError {
-                code: ret.into(),
-                message: format!("Failed to seed RNG for algorithm '{}'", handle.algorithm),
-            });
-        }
-    }
-    Ok(())
-}
+impl KcapiRNG {
+    pub fn new(algorithm: &str, flags: u32) -> KcapiResult<Self> {
+        let mut handle = Box::into_raw(Box::new(crate::kcapi_handle { _unused: [0u8; 0] }))
+            as *mut kcapi_sys::kcapi_handle;
 
-pub fn generate(handle: &KcapiHandle, count: usize) -> KcapiResult<Vec<u8>> {
-    let mut out = vec![0u8; count];
-    unsafe {
-        let ret = kcapi_sys::kcapi_rng_generate(
-            handle.handle,
-            out.as_mut_ptr(),
-            count as kcapi_sys::size_t,
-        );
-        if ret < 0 {
-            return Err(KcapiError {
-                code: ret,
-                message: format!(
-                    "Failed to obtain {} bytes from the RNG '{}'",
-                    count, handle.algorithm
-                ),
-            });
+        let alg = CString::new(algorithm).expect("Failed to create CString");
+        let seedsize: usize;
+
+        unsafe {
+            let ret = kcapi_sys::kcapi_rng_init(&mut handle as *mut _, alg.as_ptr(), flags);
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret.into(),
+                    message: format!(
+                        "Failed to initialize RNG handle for algorithm '{}'",
+                        algorithm,
+                    ),
+                });
+            }
+
+            seedsize = kcapi_sys::kcapi_rng_seedsize(handle)
+                .try_into()
+                .expect("Failed to convert u32 into usize");
         }
+
+        Ok(KcapiRNG {
+            handle,
+            algorithm: algorithm.to_string(),
+            seedsize,
+        })
     }
 
-    Ok(out)
+    pub fn seed(&self, mut data: Vec<u8>) -> KcapiResult<()> {
+        unsafe {
+            let ret = kcapi_sys::kcapi_rng_seed(self.handle, data.as_mut_ptr(), data.len() as u32);
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret.into(),
+                    message: format!("Failed to seed RNG for algorithm '{}'", self.algorithm,),
+                });
+            }
+        }
+        Ok(())
+    }
+
+    pub fn generate(&self, count: usize) -> KcapiResult<Vec<u8>> {
+        let mut out = vec![0u8; count];
+        unsafe {
+            let ret = kcapi_sys::kcapi_rng_generate(
+                self.handle,
+                out.as_mut_ptr(),
+                count as kcapi_sys::size_t,
+            );
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret,
+                    message: format!(
+                        "Failed to generate random data for algorithm '{}'",
+                        self.algorithm,
+                    ),
+                });
+            }
+        }
+        Ok(out)
+    }
 }
 
 pub fn get_bytes(count: usize) -> KcapiResult<Vec<u8>> {
@@ -108,20 +123,4 @@ pub fn get_bytes(count: usize) -> KcapiResult<Vec<u8>> {
     }
 
     Ok(out)
-}
-
-pub fn seedsize(handle: &KcapiHandle) -> KcapiResult<usize> {
-    let ret: u32;
-    unsafe {
-        ret = kcapi_sys::kcapi_rng_seedsize(handle.handle);
-        if ret == 0 {
-            return Err(KcapiError {
-                code: ret.into(),
-                message: format!("Failed to obtain seedsize for RNG '{}'", handle.algorithm),
-            });
-        }
-    }
-    let seed_size: usize = ret.try_into().expect("Failed to convert u32 into usize");
-
-    Ok(seed_size)
 }

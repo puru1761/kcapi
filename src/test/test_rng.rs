@@ -58,22 +58,22 @@ mod tests {
 
     #[test]
     fn test_rng_generate() {
-        let handle = match crate::rng::init("drbg_nopr_hmac_sha512", 0) {
-            Ok(handle) => handle,
+        let rng = match crate::rng::KcapiRNG::new("drbg_nopr_hmac_sha512", 0) {
+            Ok(rng) => rng,
             Err(e) => panic!("{}", e),
         };
 
-        match crate::rng::seed(&handle, vec![0u8; 16]) {
+        match rng.seed(vec![0u8; 16]) {
             Ok(()) => {}
             Err(e) => panic!("{}", e),
         };
 
-        let mut out_last = match crate::rng::generate(&handle, RNG_GET_BYTECOUNT) {
+        let mut out_last = match rng.generate(RNG_GET_BYTECOUNT) {
             Ok(buf) => buf,
             Err(e) => panic!("{}", e),
         };
         for _i in 0..RNG_GET_BYTECOUNT {
-            let out = match crate::rng::generate(&handle, RNG_GET_BYTECOUNT) {
+            let out = match rng.generate(RNG_GET_BYTECOUNT) {
                 Ok(buf) => buf,
                 Err(e) => panic!("{}", e),
             };
@@ -86,12 +86,12 @@ mod tests {
 
     #[test]
     fn test_rng_generate_unseeded() {
-        let handle = match crate::rng::init("drbg_nopr_hmac_sha512", 0) {
-            Ok(handle) => handle,
+        let rng = match crate::rng::KcapiRNG::new("drbg_nopr_hmac_sha512", 0) {
+            Ok(rng) => rng,
             Err(e) => panic!("{}", e),
         };
 
-        let _out = match crate::rng::generate(&handle, RNG_GET_BYTECOUNT) {
+        let _out = match rng.generate(RNG_GET_BYTECOUNT) {
             Ok(_buf) => {
                 panic!("[BUG] RNG generated randomness without being seeded.")
             }
@@ -100,18 +100,13 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_rng_seedsize() {
-        let handle = match crate::rng::init("drbg_nopr_hmac_sha512", 0) {
-            Ok(handle) => handle,
+        let rng = match crate::rng::KcapiRNG::new("drbg_nopr_hmac_sha512", 0) {
+            Ok(rng) => rng,
             Err(e) => panic!("{}", e),
         };
 
-        let seedsize = match crate::rng::seedsize(&handle) {
-            Ok(seedsize) => seedsize,
-            Err(e) => panic!("{}", e),
-        };
-
-        println!("seedsize = {}", seedsize);
+        let seedsize = rng.seedsize;
+        println!("\nseedsize = {}", seedsize);
     }
 }
