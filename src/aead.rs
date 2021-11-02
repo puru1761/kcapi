@@ -235,7 +235,7 @@ pub fn ccm_nonce_to_iv(nonce: Vec<u8>) -> KcapiResult<Vec<u8>> {
     if nonce.len() > AES_BLOCKSIZE - 2 {
         return Err(KcapiError {
             code: -libc::EINVAL as i64,
-            message: format!("Invalid input nonce length for AES-CCM"),
+            message: "Invalid input nonce length for AES-CCM".to_string(),
         });
     }
 
