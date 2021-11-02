@@ -48,6 +48,7 @@ pub const SHA256_DIGESTSIZE: usize = SHA256_BITSIZE / BITS_PER_BYTE;
 pub const SHA384_DIGESTSIZE: usize = SHA384_BITSIZE / BITS_PER_BYTE;
 pub const SHA512_DIGESTSIZE: usize = SHA512_BITSIZE / BITS_PER_BYTE;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KcapiHash {
     handle: *mut kcapi_sys::kcapi_handle,
     key: Vec<u8>,
