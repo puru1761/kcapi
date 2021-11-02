@@ -34,7 +34,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{KcapiError, KcapiHandle, KcapiResult, BITS_PER_BYTE};
+use crate::{KcapiError, KcapiResult, BITS_PER_BYTE};
 
 const SHA1_BITSIZE: usize = 160;
 const SHA224_BITSIZE: usize = 224;
@@ -48,145 +48,166 @@ pub const SHA256_DIGESTSIZE: usize = SHA256_BITSIZE / BITS_PER_BYTE;
 pub const SHA384_DIGESTSIZE: usize = SHA384_BITSIZE / BITS_PER_BYTE;
 pub const SHA512_DIGESTSIZE: usize = SHA512_BITSIZE / BITS_PER_BYTE;
 
-pub fn alg_init(algorithm: &str, flags: u32) -> KcapiResult<KcapiHandle> {
-    let mut handle = KcapiHandle::new(algorithm, crate::KcapiAlgType::Hash);
-    let alg = CString::new(algorithm).expect("Failed to convert to CString");
-
-    let ret: i32;
-    unsafe {
-        ret = kcapi_sys::kcapi_md_init(&mut handle.handle as *mut _, alg.as_ptr(), flags);
-        if ret < 0 {
-            return Err(KcapiError {
-                code: ret
-                    .try_into()
-                    .expect("Failed to convert i32 to kcapi_sys::ssize_t"),
-                message: "Failed to init Message Digest Handle".to_string(),
-            });
-        }
-    }
-
-    Ok(handle)
+pub struct KcapiHash {
+    handle: *mut kcapi_sys::kcapi_handle,
+    key: Vec<u8>,
+    pub algorithm: String,
+    pub blocksize: usize,
+    pub digestsize: usize,
 }
 
-pub fn alg_setkey(handle: &KcapiHandle, key: Vec<u8>) -> KcapiResult<()> {
-    let ret: i32;
-    unsafe {
-        ret = kcapi_sys::kcapi_md_setkey(handle.handle, key.as_ptr(), key.len() as u32);
-        if ret < 0 {
+impl KcapiHash {
+    pub fn new(algorithm: &str, flags: u32) -> KcapiResult<Self> {
+        let mut handle = Box::into_raw(Box::new(crate::kcapi_handle { _unused: [0u8; 0] }))
+            as *mut kcapi_sys::kcapi_handle;
+        let digestsize: usize;
+        let blocksize: usize;
+
+        let alg = CString::new(algorithm).expect("Failed to create CString");
+        unsafe {
+            let ret = kcapi_sys::kcapi_md_init(&mut handle as *mut _, alg.as_ptr(), flags);
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret.into(),
+                    message: format!(
+                        "Failed to initialize hash handle for algorithm '{}'",
+                        algorithm
+                    ),
+                });
+            }
+            digestsize = kcapi_sys::kcapi_md_digestsize(handle)
+                .try_into()
+                .expect("Failed to convert u32 into usize");
+            if digestsize == 0 {
+                return Err(KcapiError {
+                    code: -libc::EINVAL as i64,
+                    message: format!(
+                        "Failed to obtained digest size for algorithm '{}",
+                        algorithm
+                    ),
+                });
+            }
+
+            blocksize = kcapi_sys::kcapi_md_blocksize(handle)
+                .try_into()
+                .expect("Failed to convert u32 into usize");
+            if blocksize == 0 {
+                return Err(KcapiError {
+                    code: -libc::EINVAL as i64,
+                    message: format!("Failed to obtain block size for algorithm '{}'", algorithm),
+                });
+            }
+        }
+
+        let key: Vec<u8> = Vec::new();
+        Ok(KcapiHash {
+            handle,
+            key,
+            algorithm: algorithm.to_string(),
+            blocksize,
+            digestsize,
+        })
+    }
+
+    pub fn update(&self, buffer: Vec<u8>) -> KcapiResult<()> {
+        unsafe {
+            let ret = kcapi_sys::kcapi_md_update(
+                self.handle,
+                buffer.as_ptr(),
+                buffer.len() as kcapi_sys::size_t,
+            );
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret,
+                    message: format!(
+                        "Failed to update message digest for algorithm '{}'",
+                        self.algorithm
+                    ),
+                });
+            }
+        }
+        Ok(())
+    }
+
+    pub fn finalize(&self) -> KcapiResult<Vec<u8>> {
+        let mut digest = vec![0u8; self.digestsize];
+        unsafe {
+            let ret = kcapi_sys::kcapi_md_final(
+                self.handle,
+                digest.as_mut_ptr(),
+                digest.len() as kcapi_sys::size_t,
+            );
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret,
+                    message: format!(
+                        "Failed to finalize digest for algorithm '{}'",
+                        self.algorithm,
+                    ),
+                });
+            }
+        }
+        Ok(digest)
+    }
+
+    pub fn setkey(&mut self, key: Vec<u8>) -> KcapiResult<()> {
+        unsafe {
+            let ret = kcapi_sys::kcapi_md_setkey(self.handle, key.as_ptr(), key.len() as u32);
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret.into(),
+                    message: format!("Failed to set key for algorithm '{}'", self.algorithm),
+                });
+            }
+            self.key = key;
+        }
+        Ok(())
+    }
+
+    pub fn digest(&self, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
+        if self.digestsize == 0 {
             return Err(KcapiError {
-                code: ret
-                    .try_into()
-                    .expect("Failed to convert i32 to kcapi_sys::ssize_t"),
-                message: "Failed to set key for keyed message digest".to_string(),
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Failed to obtain valid blocksize for algorithm '{}'",
+                    self.algorithm
+                ),
             });
         }
-    }
-    Ok(())
-}
 
-pub fn alg_update(handle: &KcapiHandle, buffer: Vec<u8>) -> KcapiResult<()> {
-    let ret: kcapi_sys::ssize_t;
-    unsafe {
-        ret = kcapi_sys::kcapi_md_update(
-            handle.handle,
-            buffer.as_ptr(),
-            buffer.len() as kcapi_sys::size_t,
-        );
-
-        if ret < 0 {
-            return Err(KcapiError {
-                code: ret,
-                message: "Failed to update digest".to_string(),
-            });
+        let mut digest = vec![0u8; self.digestsize];
+        unsafe {
+            let ret = kcapi_sys::kcapi_md_digest(
+                self.handle,
+                input.as_ptr(),
+                input.len() as kcapi_sys::size_t,
+                digest.as_mut_ptr(),
+                self.digestsize as kcapi_sys::size_t,
+            );
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret,
+                    message: format!("Failed to obtain digest for algorithm '{}'", self.algorithm),
+                });
+            }
         }
+        Ok(digest)
     }
-    Ok(())
-}
-
-pub fn alg_destroy(handle: KcapiHandle) {
-    unsafe {
-        kcapi_sys::kcapi_md_destroy(handle.handle);
-    }
-}
-
-pub fn alg_digestsize(handle: &KcapiHandle) -> KcapiResult<usize> {
-    let digest_size: usize;
-    let ret: u32;
-    unsafe {
-        ret = kcapi_sys::kcapi_md_digestsize(handle.handle);
-        if ret == 0 {
-            return Err(KcapiError {
-                code: -1,
-                message: format!("Failed to obtain digestsize for '{}'", handle.algorithm),
-            });
-        }
-        digest_size = ret.try_into().expect("Failed to convert u32 into usize");
-    }
-    Ok(digest_size)
-}
-
-pub fn alg_final(handle: KcapiHandle) -> KcapiResult<Vec<u8>> {
-    let mut digest: Vec<u8>;
-
-    let outlen = crate::md::alg_digestsize(&handle)?;
-    digest = vec![0u8; outlen];
-
-    let ret: kcapi_sys::ssize_t;
-    unsafe {
-        ret = kcapi_sys::kcapi_md_final(
-            handle.handle,
-            digest.as_mut_ptr(),
-            outlen as kcapi_sys::size_t,
-        );
-        if ret < 0 {
-            return Err(KcapiError {
-                code: ret,
-                message: "Failed to finalize message digest".to_string(),
-            });
-        }
-    }
-    Ok(digest)
-}
-
-pub fn alg_digest(handle: KcapiHandle, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
-    let mut output: Vec<u8>;
-
-    let outlen = crate::md::alg_digestsize(&handle)?;
-    output = vec![0u8; outlen];
-
-    let ret: kcapi_sys::ssize_t;
-    unsafe {
-        ret = kcapi_sys::kcapi_md_digest(
-            handle.handle,
-            input.as_ptr(),
-            input.len() as kcapi_sys::size_t,
-            output.as_mut_ptr(),
-            outlen as kcapi_sys::size_t,
-        );
-        if ret != outlen as kcapi_sys::ssize_t {
-            return Err(KcapiError {
-                code: ret,
-                message: "Failed to obtain message digest.".to_string(),
-            });
-        }
-    }
-
-    Ok(output)
 }
 
 pub fn digest(alg: &str, input: Vec<u8>, flags: u32) -> KcapiResult<Vec<u8>> {
-    let handle = crate::md::alg_init(alg, flags)?;
-    crate::md::alg_update(&handle, input)?;
-    let output = crate::md::alg_final(handle)?;
+    let hash = crate::md::KcapiHash::new(alg, flags)?;
+    hash.update(input)?;
+    let output = hash.finalize()?;
 
     Ok(output)
 }
 
 pub fn keyed_digest(alg: &str, key: Vec<u8>, input: Vec<u8>, flags: u32) -> KcapiResult<Vec<u8>> {
-    let handle = crate::md::alg_init(alg, flags)?;
-    crate::md::alg_setkey(&handle, key)?;
-    crate::md::alg_update(&handle, input)?;
-    let output = crate::md::alg_final(handle)?;
+    let mut hmac = crate::md::KcapiHash::new(alg, flags)?;
+    hmac.setkey(key)?;
+    hmac.update(input)?;
+    let output = hmac.finalize()?;
 
     Ok(output)
 }
