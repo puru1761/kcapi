@@ -32,23 +32,9 @@
  *
  */
 
-use crate::{KcapiAlgType, KcapiError, KcapiHandle, KcapiResult};
-
-pub fn pad_iv(handle: &KcapiHandle, iv: Vec<u8>) -> KcapiResult<Vec<u8>> {
+pub fn pad_iv(ivsize: usize, iv: Vec<u8>) -> Vec<u8> {
     let mut newiv: Vec<u8>;
-
-    let ivsize = match handle.alg_type {
-        KcapiAlgType::AEAD => crate::aead::alg_ivsize(handle)?,
-        KcapiAlgType::SKCipher => crate::skcipher::alg_ivsize(handle)?,
-        _ => {
-            return Err(KcapiError {
-                code: -libc::EINVAL as i64,
-                message: format!("Cannot pad IV for algorithm '{}'", handle.algorithm),
-            });
-        }
-    };
     newiv = vec![0u8; ivsize];
     newiv[..iv.len()].clone_from_slice(&iv);
-
-    Ok(newiv)
+    newiv
 }
