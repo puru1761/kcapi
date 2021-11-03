@@ -35,7 +35,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        skcipher::{AES128_KEYSIZE, AES192_KEYSIZE, AES256_KEYSIZE, AES_BLOCKSIZE},
+        skcipher::{KcapiSKCipher, AES128_KEYSIZE, AES192_KEYSIZE, AES256_KEYSIZE, AES_BLOCKSIZE},
         KCAPI_ACCESS_HEURISTIC,
     };
 
@@ -706,29 +706,33 @@ mod tests {
             ],
         ];
 
-        let handle = match crate::skcipher::alg_stream_init_enc("ctr(aes)", key, iv, inp.clone()) {
+        let mut cipher = match KcapiSKCipher::new_enc_stream("ctr(aes)", key, iv, inp.clone()) {
             Ok(handle) => handle,
             Err(e) => panic!("{}", e),
         };
 
-        for i in 0..loops {
+        let mut i = 0;
+        while i < loops {
             if i == (loops - 1) {
-                match crate::skcipher::alg_stream_update_last(&handle, inp.clone()) {
+                match cipher.stream_update_last(inp.clone()) {
                     Ok(()) => {}
                     Err(e) => panic!("{}", e),
                 }
             } else {
-                match crate::skcipher::alg_stream_update(&handle, inp.clone()) {
+                match cipher.stream_update(inp.clone()) {
                     Ok(()) => {}
                     Err(e) => panic!("{}", e),
                 }
             }
-            let mut out = inp.clone();
-            out = match crate::skcipher::alg_stream_op(&handle, out) {
+
+            let out = match cipher.stream_op() {
                 Ok(out) => out,
                 Err(e) => panic!("{}", e),
             };
-            assert_eq!(out[0], out_exp[i]);
+            for o in out {
+                assert_eq!(o, out_exp[i]);
+                i += 1;
+            }
         }
     }
 
@@ -803,10 +807,10 @@ mod tests {
                 0xea, 0x4b,
             ],
         ];
-        let out_exp = vec![vec![0x41u8; 16]; 1];
+        let out_exp = vec![0x41u8; 16];
 
         for j in 0..inp.len() {
-            let handle = match crate::skcipher::alg_stream_init_dec(
+            let mut cipher = match KcapiSKCipher::new_dec_stream(
                 "ctr(aes)",
                 key.clone(),
                 iv.clone(),
@@ -816,25 +820,25 @@ mod tests {
                 Err(e) => panic!("{}", e),
             };
 
-            for i in 0..(j + 1) {
+            for i in 1..(j + 1) {
                 if i == j {
-                    match crate::skcipher::alg_stream_update_last(&handle, vec![inp[j].clone()]) {
+                    match cipher.stream_update_last(vec![inp[j].clone()]) {
                         Ok(()) => {}
                         Err(e) => panic!("{}", e),
                     }
                 } else {
-                    match crate::skcipher::alg_stream_update(&handle, vec![inp[j].clone()]) {
+                    match cipher.stream_update(vec![inp[j].clone()]) {
                         Ok(()) => {}
                         Err(e) => panic!("{}", e),
                     }
                 }
-                let mut out = vec![inp[j].clone()];
-                out = match crate::skcipher::alg_stream_op(&handle, out) {
+                let mut out = match cipher.stream_op() {
                     Ok(out) => out,
                     Err(e) => panic!("{}", e),
                 };
                 if i == j {
-                    assert_eq!(out, out_exp);
+                    let o = out.pop().expect("(BUG) Empty output from stream_op");
+                    assert_eq!(o, out_exp);
                 }
             }
         }
