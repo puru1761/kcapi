@@ -34,7 +34,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::aead::KCAPIAEADOutput;
+    use crate::aead::KcapiAEADOutput;
     use crate::KCAPI_ACCESS_HEURISTIC;
 
     #[test]
@@ -52,7 +52,7 @@ mod tests {
         let key = vec![0u8; 16];
         let iv = vec![0u8; 12];
 
-        let out_exp: KCAPIAEADOutput = KCAPIAEADOutput {
+        let out_exp: KcapiAEADOutput = KcapiAEADOutput {
             output: vec![
                 0x42, 0xc9, 0x9b, 0x8f, 0x21, 0xf7, 0xe2, 0xd3, 0xb2, 0x69, 0x83, 0xf8, 0x30, 0xf3,
                 0xbf, 0x39, 0xb6, 0xd4, 0xeb,
@@ -104,7 +104,7 @@ mod tests {
         let key = vec![0u8; 16];
         let iv = vec![0u8; 12];
 
-        let out_exp: KCAPIAEADOutput = KCAPIAEADOutput {
+        let out_exp: KcapiAEADOutput = KcapiAEADOutput {
             output: vec![
                 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
                 0x41, 0x41, 0x41, 0x41, 0x41,

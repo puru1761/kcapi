@@ -34,331 +34,404 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{skcipher::AES_BLOCKSIZE, KcapiAlgType, KcapiError, KcapiHandle, KcapiResult};
-
-pub const AEAD_ENCRYPT: u32 = 0;
-pub const AEAD_DECRYPT: u32 = 1;
+use crate::{KcapiError, KcapiResult};
 
 #[derive(Debug, Clone)]
-pub struct KCAPIAEADOutput {
+pub struct KcapiAEADOutput {
     pub assocdata: Vec<u8>,
     pub output: Vec<u8>,
     pub tag: Vec<u8>,
 }
 
-pub fn alg_init(algorithm: &str, flags: u32) -> KcapiResult<KcapiHandle> {
-    let mut handle = KcapiHandle::new(algorithm, KcapiAlgType::AEAD);
-    let alg = CString::new(algorithm).expect("Failed to allocate CString");
-
-    unsafe {
-        let ret = kcapi_sys::kcapi_aead_init(&mut handle.handle as *mut _, alg.as_ptr(), flags);
-        if ret < 0 {
-            return Err(KcapiError {
-                code: ret.into(),
-                message: format!("Failed to init aead handle for algorithm '{}'", algorithm),
-            });
-        }
-    }
-
-    Ok(handle)
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum KcapiAEADMode {
+    Decrypt = 0,
+    Encrypt,
 }
 
-pub fn alg_setkey(handle: &KcapiHandle, key: Vec<u8>) -> KcapiResult<()> {
-    unsafe {
-        let ret = kcapi_sys::kcapi_aead_setkey(handle.handle, key.as_ptr(), key.len() as u32);
-        if ret < 0 {
-            return Err(KcapiError {
-                code: ret.into(),
-                message: format!("Failed to setkey for algorithm '{}'", handle.algorithm),
-            });
-        }
-    }
-    Ok(())
-}
-
-pub fn alg_authsize(handle: &KcapiHandle) -> KcapiResult<usize> {
-    let authsize: usize;
-    unsafe {
-        authsize = kcapi_sys::kcapi_aead_authsize(handle.handle)
-            .try_into()
-            .expect("Failed to convert u32 into usize");
-        if authsize == 0 {
-            return Err(KcapiError {
-                code: -libc::EINVAL as i64,
-                message: format!(
-                    "Failed to obtain max tag length for algorithm '{}'",
-                    handle.algorithm
-                ),
-            });
-        }
-    }
-    Ok(authsize)
-}
-
-pub fn alg_blocksize(handle: &KcapiHandle) -> KcapiResult<usize> {
-    let blocksize: usize;
-    unsafe {
-        blocksize = kcapi_sys::kcapi_aead_blocksize(handle.handle)
-            .try_into()
-            .expect("Failed to convert u32 into usize");
-        if blocksize == 0 {
-            return Err(KcapiError {
-                code: -libc::EINVAL as i64,
-                message: format!(
-                    "Failed to obtain blocksize for algorithm '{}'",
-                    handle.algorithm
-                ),
-            });
-        }
-    }
-    Ok(blocksize)
-}
-
-pub fn alg_ivsize(handle: &KcapiHandle) -> KcapiResult<usize> {
-    let ivsize: usize;
-    unsafe {
-        ivsize = kcapi_sys::kcapi_aead_ivsize(handle.handle)
-            .try_into()
-            .expect("Failed to convert u32 into usize");
-        if ivsize == 0 {
-            return Err(KcapiError {
-                code: -libc::EINVAL as i64,
-                message: format!(
-                    "Failed to obtain IV size for algorithm '{}'",
-                    handle.algorithm
-                ),
-            });
-        }
-    }
-    Ok(ivsize)
-}
-
-pub fn alg_inbuflen(
-    handle: &KcapiHandle,
-    inlen: usize,
-    assoclen: usize,
-    taglen: usize,
-    mode: u32,
-) -> usize {
-    let inbuflen: usize;
-    unsafe {
-        if mode == AEAD_ENCRYPT {
-            inbuflen = kcapi_sys::kcapi_aead_inbuflen_enc(
-                handle.handle,
-                inlen as kcapi_sys::size_t,
-                assoclen as kcapi_sys::size_t,
-                taglen as kcapi_sys::size_t,
-            )
-            .try_into()
-            .expect("Failed to convert u32 into usize")
-        } else {
-            inbuflen = kcapi_sys::kcapi_aead_inbuflen_dec(
-                handle.handle,
-                inlen as kcapi_sys::size_t,
-                assoclen as kcapi_sys::size_t,
-                taglen as kcapi_sys::size_t,
-            )
-            .try_into()
-            .expect("Failed to convert u32 into usize")
-        }
-    }
-    inbuflen
-}
-
-pub fn alg_outbuflen(
-    handle: &KcapiHandle,
-    inlen: usize,
-    assoclen: usize,
-    taglen: usize,
-    mode: u32,
-) -> usize {
-    let outbuflen: usize;
-    unsafe {
-        if mode == AEAD_ENCRYPT {
-            outbuflen = kcapi_sys::kcapi_aead_outbuflen_enc(
-                handle.handle,
-                inlen as kcapi_sys::size_t,
-                assoclen as kcapi_sys::size_t,
-                taglen as kcapi_sys::size_t,
-            )
-            .try_into()
-            .expect("Failed to convert u32 into usize");
-        } else {
-            outbuflen = kcapi_sys::kcapi_aead_outbuflen_dec(
-                handle.handle,
-                inlen as kcapi_sys::size_t,
-                assoclen as kcapi_sys::size_t,
-                taglen as kcapi_sys::size_t,
-            )
-            .try_into()
-            .expect("Failed to convert u32 into usize");
-        }
-    }
-    outbuflen
-}
-
-pub fn alg_settaglen(handle: &KcapiHandle, taglen: usize) -> KcapiResult<()> {
-    let max_taglen = crate::aead::alg_authsize(handle)?;
-    if taglen > max_taglen {
-        return Err(KcapiError {
-            code: -libc::EINVAL as i64,
-            message: format!(
-                "Invalid tag length {} specified for algorithm '{}' max taglen is: {}",
-                taglen, handle.algorithm, max_taglen
-            ),
-        });
-    }
-    unsafe {
-        let ret = kcapi_sys::kcapi_aead_settaglen(handle.handle, taglen as u32);
-        if ret < 0 {
-            return Err(KcapiError {
-                code: ret.into(),
-                message: format!(
-                    "Failed to set tag length for algorithm '{}'",
-                    handle.algorithm
-                ),
-            });
-        }
-    }
-    Ok(())
-}
-
-pub fn alg_setassoclen(handle: &KcapiHandle, assoclen: usize) {
-    unsafe {
-        kcapi_sys::kcapi_aead_setassoclen(handle.handle, assoclen as kcapi_sys::size_t);
-    }
-}
-
-pub fn ccm_nonce_to_iv(nonce: Vec<u8>) -> KcapiResult<Vec<u8>> {
-    let mut iv = vec![0u8; AES_BLOCKSIZE];
-
-    if nonce.len() > AES_BLOCKSIZE - 2 {
-        return Err(KcapiError {
-            code: -libc::EINVAL as i64,
-            message: "Invalid input nonce length for AES-CCM".to_string(),
-        });
-    }
-
-    iv[0] = (AES_BLOCKSIZE - 2 - nonce.len()) as u8;
-    iv[1..(1 + nonce.len())].clone_from_slice(&nonce);
-
-    Ok(iv)
-}
-
-fn aead_check_input(handle: &KcapiHandle, iv: &[u8], taglen: &usize) -> KcapiResult<()> {
-    let ivsize = crate::aead::alg_ivsize(handle)?;
-    if iv.len() != ivsize {
-        return Err(KcapiError {
-            code: -libc::EINVAL as i64,
-            message: format!(
-                "Invalid IV Size for algorithm '{}' correct IV size: {}",
-                handle.algorithm, ivsize
-            ),
-        });
-    }
-    let max_taglen = crate::aead::alg_authsize(handle)?;
-    if taglen > &max_taglen {
-        return Err(KcapiError {
-            code: -libc::EINVAL as i64,
-            message: format!(
-                "Invalid tag length for algorithm '{}' (max tag length = {})",
-                handle.algorithm, max_taglen
-            ),
-        });
-    }
-
-    Ok(())
-}
-
-pub fn alg_encrypt(
-    handle: KcapiHandle,
-    key: Vec<u8>,
-    pt: Vec<u8>,
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct KcapiAEAD {
+    handle: *mut kcapi_sys::kcapi_handle,
+    assocdata: Vec<u8>,
     iv: Vec<u8>,
-    aad: Vec<u8>,
-    taglen: usize,
-    access: u32,
-) -> KcapiResult<Vec<u8>> {
-    crate::aead::alg_setkey(&handle, key)?;
-    crate::aead::alg_settaglen(&handle, taglen)?;
-    crate::aead::alg_setassoclen(&handle, aad.len());
-
-    let inbuflen = crate::aead::alg_inbuflen(&handle, pt.len(), aad.len(), taglen, AEAD_ENCRYPT);
-
-    let outbuflen = crate::aead::alg_outbuflen(&handle, pt.len(), aad.len(), taglen, AEAD_ENCRYPT);
-
-    let mut outbuf = Vec::new();
-    outbuf.extend(aad.iter().copied());
-    outbuf.extend(pt.iter().copied());
-    outbuf.extend(vec![0u8; taglen].iter().copied());
-
-    unsafe {
-        let ret = kcapi_sys::kcapi_aead_encrypt(
-            handle.handle,
-            outbuf.as_ptr(),
-            inbuflen as kcapi_sys::size_t,
-            iv.as_ptr(),
-            outbuf.as_mut_ptr(),
-            outbuflen as kcapi_sys::size_t,
-            access as ::std::os::raw::c_int,
-        );
-        if ret < 0 {
-            return Err(KcapiError {
-                code: ret,
-                message: format!(
-                    "Failed to encrypt input data for algorithm '{}'",
-                    handle.algorithm
-                ),
-            });
-        }
-    }
-    Ok(outbuf)
-}
-
-pub fn alg_decrypt(
-    handle: KcapiHandle,
     key: Vec<u8>,
-    ct: Vec<u8>,
-    iv: Vec<u8>,
-    aad: Vec<u8>,
     tag: Vec<u8>,
-    access: u32,
-) -> KcapiResult<Vec<u8>> {
-    crate::aead::alg_setkey(&handle, key)?;
-    crate::aead::alg_settaglen(&handle, tag.len())?;
-    crate::aead::alg_setassoclen(&handle, aad.len());
+    mode: KcapiAEADMode,
+    pub algorithm: String,
+    pub assocsize: usize,
+    pub blocksize: usize,
+    pub flags: u32,
+    pub ivsize: usize,
+    pub tagsize: usize,
+    pub max_tagsize: usize,
+    pub inbuflen: usize,
+    pub outbuflen: usize,
+}
 
-    let inbuflen = crate::aead::alg_inbuflen(&handle, ct.len(), aad.len(), tag.len(), AEAD_DECRYPT);
+impl KcapiAEAD {
+    pub fn new(algorithm: &str, flags: u32) -> KcapiResult<Self> {
+        let mut handle = Box::into_raw(Box::new(crate::kcapi_handle { _unused: [0u8; 0] }))
+            as *mut kcapi_sys::kcapi_handle;
+        let max_tagsize: usize;
+        let blocksize: usize;
+        let ivsize: usize;
 
-    let outbuflen =
-        crate::aead::alg_outbuflen(&handle, ct.len(), aad.len(), tag.len(), AEAD_DECRYPT);
+        let alg = CString::new(algorithm).expect("Failed to create CString");
+        unsafe {
+            let ret = kcapi_sys::kcapi_aead_init(&mut handle as *mut _, alg.as_ptr(), flags);
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret.into(),
+                    message: format!(
+                        "Failed to initialize AEAD handle for algorithm '{}'",
+                        algorithm,
+                    ),
+                });
+            }
 
-    let mut inbuf = Vec::new();
-    inbuf.extend(aad.iter().copied());
-    inbuf.extend(ct.iter().copied());
-    inbuf.extend(tag.iter().copied());
+            max_tagsize = kcapi_sys::kcapi_aead_authsize(handle)
+                .try_into()
+                .expect("Failed to convert u32 into usize");
+            if max_tagsize == 0 {
+                return Err(KcapiError {
+                    code: -libc::EINVAL as i64,
+                    message: format!(
+                        "Failed to obtain max authsize for algorithm '{}'",
+                        algorithm,
+                    ),
+                });
+            }
 
-    unsafe {
-        let ret = kcapi_sys::kcapi_aead_decrypt(
-            handle.handle,
-            inbuf.as_ptr(),
-            inbuflen as kcapi_sys::size_t,
-            iv.as_ptr(),
-            inbuf.as_mut_ptr(),
-            outbuflen as kcapi_sys::size_t,
-            access as ::std::os::raw::c_int,
-        );
-        if ret < 0 {
+            blocksize = kcapi_sys::kcapi_aead_blocksize(handle)
+                .try_into()
+                .expect("Failed to convert u32 into usize");
+            if blocksize == 0 {
+                return Err(KcapiError {
+                    code: -libc::EINVAL as i64,
+                    message: format!("Failed to obtain blocksize for algorithm '{}'", algorithm,),
+                });
+            }
+
+            ivsize = kcapi_sys::kcapi_aead_ivsize(handle)
+                .try_into()
+                .expect("Failed to convert u32 into usize");
+            if ivsize == 0 {
+                return Err(KcapiError {
+                    code: -libc::EINVAL as i64,
+                    message: format!("Failed to obtain ivsize for algorithm '{}'", algorithm,),
+                });
+            }
+        }
+
+        Ok(KcapiAEAD {
+            handle,
+            assocdata: Vec::new(),
+            iv: Vec::new(),
+            key: Vec::new(),
+            tag: Vec::new(),
+            mode: KcapiAEADMode::Decrypt,
+            algorithm: algorithm.to_string(),
+            assocsize: 0,
+            blocksize,
+            flags,
+            ivsize,
+            tagsize: 0,
+            max_tagsize,
+            inbuflen: 0,
+            outbuflen: 0,
+        })
+    }
+
+    pub fn setkey(&mut self, key: Vec<u8>) -> KcapiResult<()> {
+        unsafe {
+            let ret = kcapi_sys::kcapi_aead_setkey(self.handle, key.as_ptr(), key.len() as u32);
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret.into(),
+                    message: format!("Failed to set key for algorithm '{}'", self.algorithm,),
+                });
+            }
+        }
+        self.key = key;
+        Ok(())
+    }
+
+    fn set_inbufsize(&mut self, inlen: usize) -> KcapiResult<()> {
+        if self.assocsize == 0 {
             return Err(KcapiError {
-                code: ret,
+                code: -libc::EINVAL as i64,
                 message: format!(
-                    "Failed to encrypt input data for algorithm '{}'",
-                    handle.algorithm
+                    "Associated data size not set for algorithm '{}'",
+                    self.algorithm,
                 ),
             });
         }
+        if self.tagsize == 0 {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!("Tag size not set for algorithm '{}'", self.algorithm,),
+            });
+        }
+
+        unsafe {
+            let get_inbuflen = match self.mode {
+                KcapiAEADMode::Decrypt => kcapi_sys::kcapi_aead_inbuflen_dec,
+                KcapiAEADMode::Encrypt => kcapi_sys::kcapi_aead_inbuflen_enc,
+            };
+            self.inbuflen = get_inbuflen(
+                self.handle,
+                inlen as kcapi_sys::size_t,
+                self.assocsize as kcapi_sys::size_t,
+                self.tagsize as kcapi_sys::size_t,
+            )
+            .try_into()
+            .expect("Failed to convert u64 into usize");
+        }
+        Ok(())
     }
-    Ok(inbuf)
+
+    fn set_outbufsize(&mut self, outlen: usize) -> KcapiResult<()> {
+        if self.assocsize == 0 {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Associated data size not set for algorithm '{}'",
+                    self.algorithm,
+                ),
+            });
+        }
+        if self.tagsize == 0 {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!("Tag size not set for algorithm '{}'", self.algorithm,),
+            });
+        }
+
+        unsafe {
+            let get_outbuflen = match self.mode {
+                KcapiAEADMode::Decrypt => kcapi_sys::kcapi_aead_outbuflen_dec,
+                KcapiAEADMode::Encrypt => kcapi_sys::kcapi_aead_outbuflen_enc,
+            };
+            self.outbuflen = get_outbuflen(
+                self.handle,
+                outlen as kcapi_sys::size_t,
+                self.assocsize as kcapi_sys::size_t,
+                self.tagsize as kcapi_sys::size_t,
+            )
+            .try_into()
+            .expect("Failed to convert u64 into usize");
+        }
+        Ok(())
+    }
+
+    pub fn set_tag(&mut self, tag: Vec<u8>) -> KcapiResult<()> {
+        if tag.len() > self.max_tagsize {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Invalid tagsize {} > {} for algorithm '{}'",
+                    tag.len(),
+                    self.max_tagsize,
+                    self.algorithm,
+                ),
+            });
+        }
+
+        unsafe {
+            let ret = kcapi_sys::kcapi_aead_settaglen(self.handle, tag.len() as u32);
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret.into(),
+                    message: format!(
+                        "Failed to set tag length for algorithm '{}'",
+                        self.algorithm,
+                    ),
+                });
+            }
+        }
+        self.tagsize = tag.len();
+        self.tag = tag;
+        Ok(())
+    }
+
+    pub fn set_tagsize(&mut self, tagsize: usize) -> KcapiResult<()> {
+        if tagsize > self.max_tagsize {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Invalid tagsize {} > {} for algorithm '{}'",
+                    tagsize, self.max_tagsize, self.algorithm,
+                ),
+            });
+        }
+
+        unsafe {
+            let ret = kcapi_sys::kcapi_aead_settaglen(self.handle, tagsize as u32);
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret.into(),
+                    message: format!(
+                        "Failed to set tag length for algorithm '{}'",
+                        self.algorithm,
+                    ),
+                });
+            }
+        }
+        self.tagsize = tagsize;
+        Ok(())
+    }
+
+    pub fn set_assocdata(&mut self, assocdata: Vec<u8>) {
+        let assocsize = assocdata.len();
+        unsafe {
+            kcapi_sys::kcapi_aead_setassoclen(self.handle, assocsize as kcapi_sys::size_t);
+        }
+        self.assocdata = assocdata;
+        self.assocsize = assocsize;
+    }
+
+    fn check_aead_input(&self, iv: &[u8]) -> KcapiResult<()> {
+        if self.key.is_empty() {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Authenticated Encryption key is not set for algorithm '{}'",
+                    self.algorithm,
+                ),
+            });
+        }
+        if self.assocdata.is_empty() {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Associated data is not set for algorithm '{}'",
+                    self.algorithm,
+                ),
+            });
+        }
+        if self.tagsize == 0 && self.tag.is_empty() {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Tag and Tag size is not set for algorithm '{}'",
+                    self.algorithm,
+                ),
+            });
+        }
+        if iv.len() != self.ivsize {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Invalid IV of size {}, IV must be of size {} for algorithm '{}'",
+                    iv.len(),
+                    self.ivsize,
+                    self.algorithm,
+                ),
+            });
+        }
+        Ok(())
+    }
+
+    pub fn encrypt(
+        &mut self,
+        pt: Vec<u8>,
+        iv: Vec<u8>,
+        access: u32,
+    ) -> KcapiResult<KcapiAEADOutput> {
+        self.mode = KcapiAEADMode::Encrypt;
+        self.check_aead_input(&iv)?;
+
+        self.set_inbufsize(pt.len())?;
+        self.set_outbufsize(pt.len())?;
+
+        let mut outbuf = Vec::new();
+        outbuf.extend(self.assocdata.iter().copied());
+        outbuf.extend(pt.iter().copied());
+        outbuf.extend(vec![0u8; self.tagsize].iter().copied());
+
+        unsafe {
+            let ret = kcapi_sys::kcapi_aead_encrypt(
+                self.handle,
+                outbuf.as_ptr(),
+                self.inbuflen as kcapi_sys::size_t,
+                iv.as_ptr(),
+                outbuf.as_mut_ptr(),
+                self.outbuflen as kcapi_sys::size_t,
+                access as ::std::os::raw::c_int,
+            );
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret,
+                    message: format!(
+                        "Authenticated Encryption failed for algorithm '{}'",
+                        self.algorithm,
+                    ),
+                });
+            }
+        }
+        let ct_offset = self.assocsize;
+        let tag_offset = self.assocsize + pt.len();
+        let mut ct = vec![0u8; pt.len()];
+        ct.clone_from_slice(&outbuf[ct_offset..tag_offset]);
+        let mut tag = vec![0u8; self.tagsize];
+        tag.clone_from_slice(&outbuf[tag_offset..]);
+
+        Ok(KcapiAEADOutput {
+            output: ct,
+            tag,
+            assocdata: self.assocdata.clone(),
+        })
+    }
+
+    pub fn decrypt(
+        &mut self,
+        ct: Vec<u8>,
+        iv: Vec<u8>,
+        access: u32,
+    ) -> KcapiResult<KcapiAEADOutput> {
+        self.mode = KcapiAEADMode::Decrypt;
+        self.check_aead_input(&iv)?;
+
+        self.set_inbufsize(ct.len())?;
+        self.set_outbufsize(ct.len())?;
+
+        let mut outbuf = Vec::new();
+        outbuf.extend(self.assocdata.iter().copied());
+        outbuf.extend(ct.iter().copied());
+        outbuf.extend(self.tag.iter().copied());
+
+        unsafe {
+            let ret = kcapi_sys::kcapi_aead_decrypt(
+                self.handle,
+                outbuf.as_ptr(),
+                self.inbuflen as kcapi_sys::size_t,
+                iv.as_ptr(),
+                outbuf.as_mut_ptr(),
+                self.outbuflen as kcapi_sys::size_t,
+                access as ::std::os::raw::c_int,
+            );
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret,
+                    message: format!(
+                        "Authenticated decryption failed for algorithm '{}'",
+                        self.algorithm,
+                    ),
+                });
+            }
+        }
+
+        let ct_offset = self.assocsize;
+        let tag_offset = self.assocsize + ct.len();
+        let mut pt = vec![0u8; ct.len()];
+        pt.clone_from_slice(&outbuf[ct_offset..tag_offset]);
+
+        Ok(KcapiAEADOutput {
+            output: pt,
+            tag: self.tag.clone(),
+            assocdata: self.assocdata.clone(),
+        })
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -367,29 +440,17 @@ pub fn encrypt(
     key: Vec<u8>,
     pt: Vec<u8>,
     iv: Vec<u8>,
-    aad: Vec<u8>,
-    taglen: usize,
+    assocdata: Vec<u8>,
+    tagsize: usize,
     access: u32,
     flags: u32,
-) -> KcapiResult<KCAPIAEADOutput> {
-    let handle = crate::aead::alg_init(alg, flags)?;
-    let ct_len = pt.len();
-    let ct_offset = aad.len();
-    let tag_offset = ct_offset + pt.len();
-
-    aead_check_input(&handle, &iv, &taglen)?;
-    let ct_buf = crate::aead::alg_encrypt(handle, key, pt, iv, aad.clone(), taglen, access)?;
-
-    let mut ct = vec![0u8; ct_len];
-    ct.clone_from_slice(&ct_buf[ct_offset..tag_offset]);
-    let mut tag = vec![0u8; taglen];
-    tag.clone_from_slice(&ct_buf[tag_offset..]);
-
-    Ok(KCAPIAEADOutput {
-        output: ct,
-        tag,
-        assocdata: aad,
-    })
+) -> KcapiResult<KcapiAEADOutput> {
+    let mut cipher = KcapiAEAD::new(alg, flags)?;
+    cipher.set_tagsize(tagsize)?;
+    cipher.set_assocdata(assocdata);
+    cipher.setkey(key)?;
+    let output = cipher.encrypt(pt, iv, access)?;
+    Ok(output)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -398,25 +459,15 @@ pub fn decrypt(
     key: Vec<u8>,
     ct: Vec<u8>,
     iv: Vec<u8>,
-    aad: Vec<u8>,
+    assocdata: Vec<u8>,
     tag: Vec<u8>,
     access: u32,
     flags: u32,
-) -> KcapiResult<KCAPIAEADOutput> {
-    let handle = crate::aead::alg_init(alg, flags)?;
-    let pt_len = ct.len();
-    let ct_offset = aad.len();
-    let tag_offset = ct_offset + ct.len();
-
-    aead_check_input(&handle, &iv, &tag.len())?;
-    let ct_buf = crate::aead::alg_decrypt(handle, key, ct, iv, aad.clone(), tag.clone(), access)?;
-
-    let mut pt = vec![0u8; pt_len];
-    pt.clone_from_slice(&ct_buf[ct_offset..tag_offset]);
-
-    Ok(KCAPIAEADOutput {
-        output: pt,
-        tag,
-        assocdata: aad,
-    })
+) -> KcapiResult<KcapiAEADOutput> {
+    let mut cipher = KcapiAEAD::new(alg, flags)?;
+    cipher.set_tag(tag)?;
+    cipher.set_assocdata(assocdata);
+    cipher.setkey(key)?;
+    let output = cipher.decrypt(ct, iv, access)?;
+    Ok(output)
 }
