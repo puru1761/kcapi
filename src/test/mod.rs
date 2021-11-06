@@ -33,6 +33,7 @@
  */
 
 mod test_aead;
+mod test_akcipher;
 mod test_md;
 mod test_rng;
 mod test_skcipher;
