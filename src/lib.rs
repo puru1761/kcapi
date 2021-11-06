@@ -42,15 +42,6 @@ pub const KCAPI_ACCESS_SENDMSG: u32 = kcapi_sys::KCAPI_ACCESS_SENDMSG;
 
 pub const KCAPI_INIT_AIO: u32 = kcapi_sys::KCAPI_INIT_AIO;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum KcapiAlgType {
-    Hash = 1,
-    SKCipher,
-    AEAD,
-    AKCipher,
-    RNG,
-}
-
 pub type KcapiResult<T> = std::result::Result<T, KcapiError>;
 
 #[derive(Debug, Clone)]
@@ -69,25 +60,6 @@ impl fmt::Display for KcapiError {
 #[derive(Debug, Clone, Copy)]
 struct kcapi_handle {
     _unused: [u8; 0],
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KcapiHandle {
-    algorithm: String,
-    alg_type: KcapiAlgType,
-    handle: *mut kcapi_sys::kcapi_handle,
-}
-
-impl KcapiHandle {
-    fn new(alg: &str, alg_type: KcapiAlgType) -> Self {
-        let handle = Box::into_raw(Box::new(kcapi_handle { _unused: [0u8; 0] }))
-            as *mut kcapi_sys::kcapi_handle;
-        KcapiHandle {
-            algorithm: alg.to_string(),
-            alg_type,
-            handle,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
