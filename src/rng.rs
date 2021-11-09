@@ -34,7 +34,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{KcapiError, KcapiResult};
+use crate::{KCAPI_INIT_AIO, KcapiError, KcapiResult};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct KcapiRNG {
@@ -44,7 +44,7 @@ pub struct KcapiRNG {
 }
 
 impl KcapiRNG {
-    pub fn new(algorithm: &str, flags: u32) -> KcapiResult<Self> {
+    pub fn new(algorithm: &str) -> KcapiResult<Self> {
         let mut handle = Box::into_raw(Box::new(crate::kcapi_handle { _unused: [0u8; 0] }))
             as *mut kcapi_sys::kcapi_handle;
 
@@ -52,7 +52,7 @@ impl KcapiRNG {
         let seedsize: usize;
 
         unsafe {
-            let ret = kcapi_sys::kcapi_rng_init(&mut handle as *mut _, alg.as_ptr(), flags);
+            let ret = kcapi_sys::kcapi_rng_init(&mut handle as *mut _, alg.as_ptr(), !KCAPI_INIT_AIO);
             if ret < 0 {
                 return Err(KcapiError {
                     code: ret.into(),

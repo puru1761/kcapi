@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_rng_generate() {
-        let rng = match crate::rng::KcapiRNG::new("drbg_nopr_hmac_sha512", 0) {
+        let rng = match crate::rng::KcapiRNG::new("drbg_nopr_hmac_sha512") {
             Ok(rng) => rng,
             Err(e) => panic!("{}", e),
         };
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_rng_generate_unseeded() {
-        let rng = match crate::rng::KcapiRNG::new("drbg_nopr_hmac_sha512", 0) {
+        let rng = match crate::rng::KcapiRNG::new("drbg_nopr_hmac_sha512") {
             Ok(rng) => rng,
             Err(e) => panic!("{}", e),
         };
@@ -101,7 +101,7 @@ mod tests {
 
     #[test]
     fn test_rng_seedsize() {
-        let rng = match crate::rng::KcapiRNG::new("drbg_nopr_hmac_sha512", 0) {
+        let rng = match crate::rng::KcapiRNG::new("drbg_nopr_hmac_sha512") {
             Ok(rng) => rng,
             Err(e) => panic!("{}", e),
         };
