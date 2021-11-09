@@ -1,6 +1,7 @@
 # KCAPI - The Official High-level Rust Bindings for libkcapi
 
 ![CI Badge](https://github.com/puru1761/kcapi/actions/workflows/main.yml/badge.svg)
+![License](https://img.shields.io/github/license/puru1761/kcapi)
 
 This repository contains the rust sources for the official high-level rust
 bindings for `libkcapi` - A userspace interface to the Linux Kernel's
@@ -26,6 +27,7 @@ The major modules provided by this crate are:
 * `kcapi::aead` - Provides Authenticated Encryption with Associated Data (AEAD) Ciphers
 * `kcapi::rng` - Provides Random Number Generation support.
 * `kcapi::akcipher` - Provides Asymmetric key ciphers.
+* `kcapi::kdf` - Provides Key-Derivation Function (KDF) support.
 
 A simple example for using the convenience hash API is given below:
 
