@@ -46,7 +46,7 @@ mod tests {
             0x6d, 0xbc, 0x18, 0x6f, 0x20,
         ];
 
-        let digest = match crate::md::digest("sha1", inp, 0) {
+        let digest = match crate::md::digest("sha1", inp) {
             Ok(digest) => digest,
             Err(e) => {
                 panic!("{}", e);
@@ -64,7 +64,7 @@ mod tests {
             0x61, 0x18, 0xd4, 0xfe, 0xe0, 0xd6,
         ];
 
-        let hmac = match crate::md::keyed_digest("hmac(sha1)", key, inp, 0) {
+        let hmac = match crate::md::keyed_digest("hmac(sha1)", key, inp) {
             Ok(hmac) => hmac,
             Err(e) => {
                 panic!("{}", e);
@@ -81,7 +81,7 @@ mod tests {
             0x6d, 0xbc, 0x18, 0x6f, 0x20,
         ];
 
-        let hash = match crate::md::KcapiHash::new("sha1", 0) {
+        let hash = match crate::md::KcapiHash::new("sha1") {
             Ok(hash) => hash,
             Err(e) => panic!("{}", e),
         };
@@ -111,7 +111,7 @@ mod tests {
             0x61, 0x18, 0xd4, 0xfe, 0xe0, 0xd6,
         ];
 
-        let mut hmac = match crate::md::KcapiHash::new("hmac(sha1)", 0) {
+        let mut hmac = match crate::md::KcapiHash::new("hmac(sha1)") {
             Ok(hmac) => hmac,
             Err(e) => {
                 panic!("{}", e);

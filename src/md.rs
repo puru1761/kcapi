@@ -34,7 +34,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{KcapiError, KcapiResult, BITS_PER_BYTE};
+use crate::{KcapiError, KcapiResult, BITS_PER_BYTE, KCAPI_INIT_AIO};
 
 const SHA1_BITSIZE: usize = 160;
 const SHA224_BITSIZE: usize = 224;
@@ -58,7 +58,7 @@ pub struct KcapiHash {
 }
 
 impl KcapiHash {
-    pub fn new(algorithm: &str, flags: u32) -> KcapiResult<Self> {
+    pub fn new(algorithm: &str) -> KcapiResult<Self> {
         let mut handle = Box::into_raw(Box::new(crate::kcapi_handle { _unused: [0u8; 0] }))
             as *mut kcapi_sys::kcapi_handle;
         let digestsize: usize;
@@ -66,7 +66,8 @@ impl KcapiHash {
 
         let alg = CString::new(algorithm).expect("Failed to create CString");
         unsafe {
-            let ret = kcapi_sys::kcapi_md_init(&mut handle as *mut _, alg.as_ptr(), flags);
+            let ret =
+                kcapi_sys::kcapi_md_init(&mut handle as *mut _, alg.as_ptr(), !KCAPI_INIT_AIO);
             if ret < 0 {
                 return Err(KcapiError {
                     code: ret.into(),
@@ -196,16 +197,16 @@ impl KcapiHash {
     }
 }
 
-pub fn digest(alg: &str, input: Vec<u8>, flags: u32) -> KcapiResult<Vec<u8>> {
-    let hash = crate::md::KcapiHash::new(alg, flags)?;
+pub fn digest(alg: &str, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
+    let hash = crate::md::KcapiHash::new(alg)?;
     hash.update(input)?;
     let output = hash.finalize()?;
 
     Ok(output)
 }
 
-pub fn keyed_digest(alg: &str, key: Vec<u8>, input: Vec<u8>, flags: u32) -> KcapiResult<Vec<u8>> {
-    let mut hmac = crate::md::KcapiHash::new(alg, flags)?;
+pub fn keyed_digest(alg: &str, key: Vec<u8>, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
+    let mut hmac = crate::md::KcapiHash::new(alg)?;
     hmac.setkey(key)?;
     hmac.update(input)?;
     let output = hmac.finalize()?;
