@@ -87,6 +87,7 @@ pub mod util;
 
 pub mod aead;
 pub mod akcipher;
+pub mod kdf;
 pub mod md;
 pub mod rng;
 pub mod skcipher;
