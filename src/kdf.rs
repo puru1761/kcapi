@@ -34,7 +34,7 @@
 
 use std::ffi::CString;
 
-use crate::{KcapiError, KcapiResult};
+use crate::{KcapiError, KcapiResult, KCAPI_INIT_AIO};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct KcapiKDF {
@@ -45,7 +45,7 @@ pub struct KcapiKDF {
 }
 
 impl KcapiKDF {
-    pub fn new(algorithm: &str, flags: u32) -> KcapiResult<Self> {
+    pub fn new(algorithm: &str) -> KcapiResult<Self> {
         let mut handle = Box::into_raw(Box::new(crate::kcapi_handle { _unused: [0u8; 0] }))
             as *mut kcapi_sys::kcapi_handle;
 
@@ -54,7 +54,8 @@ impl KcapiKDF {
         unsafe {
             iteration_count = kcapi_sys::kcapi_pbkdf_iteration_count(alg.as_ptr(), 0);
 
-            let ret = kcapi_sys::kcapi_md_init(&mut handle as *mut _, alg.as_ptr(), flags);
+            let ret =
+                kcapi_sys::kcapi_md_init(&mut handle as *mut _, alg.as_ptr(), !KCAPI_INIT_AIO);
             if ret < 0 {
                 return Err(KcapiError {
                     code: ret.into(),

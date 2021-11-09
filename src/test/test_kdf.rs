@@ -56,7 +56,7 @@ mod tests {
             0xf0,
         ];
 
-        let mut kdf = match crate::kdf::KcapiKDF::new("hmac(sha256)", 0) {
+        let mut kdf = match crate::kdf::KcapiKDF::new("hmac(sha256)") {
             Ok(kdf) => kdf,
             Err(e) => panic!("Failed to initialize CTR-KDF handle {}", e),
         };
@@ -99,7 +99,7 @@ mod tests {
             0x8f, 0x7d, 0x65, 0xff, 0xbb, 0x5f, 0x95,
         ];
 
-        let mut kdf = match crate::kdf::KcapiKDF::new("hmac(sha256)", 0) {
+        let mut kdf = match crate::kdf::KcapiKDF::new("hmac(sha256)") {
             Ok(kdf) => kdf,
             Err(e) => panic!("Failed to initialize FB-KDF handle {}", e),
         };
@@ -139,7 +139,7 @@ mod tests {
             0x2c, 0x69, 0x2, 0x99, 0xed, 0xc4, 0x53,
         ];
 
-        let mut kdf = match crate::kdf::KcapiKDF::new("hmac(sha256)", 0) {
+        let mut kdf = match crate::kdf::KcapiKDF::new("hmac(sha256)") {
             Ok(kdf) => kdf,
             Err(e) => panic!("Failed to initialize DPI-KDF handle {}", e),
         };
