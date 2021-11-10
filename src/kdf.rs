@@ -34,7 +34,7 @@
 
 use std::ffi::CString;
 
-use crate::{KcapiError, KcapiResult, KCAPI_INIT_AIO};
+use crate::{KcapiError, KcapiResult, INIT_AIO};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct KcapiKDF {
@@ -56,8 +56,7 @@ impl KcapiKDF {
         unsafe {
             iteration_count = kcapi_sys::kcapi_pbkdf_iteration_count(alg.as_ptr(), 0);
 
-            let ret =
-                kcapi_sys::kcapi_md_init(&mut handle as *mut _, alg.as_ptr(), !KCAPI_INIT_AIO);
+            let ret = kcapi_sys::kcapi_md_init(&mut handle as *mut _, alg.as_ptr(), !INIT_AIO);
             if ret < 0 {
                 return Err(KcapiError {
                     code: ret.into(),
@@ -72,10 +71,7 @@ impl KcapiKDF {
             if digestsize == 0 {
                 return Err(KcapiError {
                     code: -libc::EINVAL as i64,
-                    message: format!(
-                        "Failed to obtain digestsize for algorithm '{}'",
-                        algorithm,
-                    ),
+                    message: format!("Failed to obtain digestsize for algorithm '{}'", algorithm,),
                 });
             }
         }

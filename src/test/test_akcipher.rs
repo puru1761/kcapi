@@ -154,7 +154,7 @@ mod tests {
             Err(e) => panic!("{}", e),
         };
 
-        let out = match handle.encrypt(PT.to_vec(), crate::KCAPI_ACCESS_HEURISTIC) {
+        let out = match handle.encrypt(PT.to_vec(), crate::ACCESS_HEURISTIC) {
             Ok(out) => out,
             Err(e) => panic!("{}", e),
         };
@@ -173,7 +173,7 @@ mod tests {
             Err(e) => panic!("{}", e),
         };
 
-        let out = match handle.decrypt(CT.to_vec(), crate::KCAPI_ACCESS_HEURISTIC) {
+        let out = match handle.decrypt(CT.to_vec(), crate::ACCESS_HEURISTIC) {
             Ok(out) => out,
             Err(e) => panic!("{}", e),
         };
@@ -200,7 +200,7 @@ mod tests {
             Err(e) => panic!("{}", e),
         };
 
-        let out = match handle.sign(digest.to_vec(), crate::KCAPI_ACCESS_HEURISTIC) {
+        let out = match handle.sign(digest.to_vec(), crate::ACCESS_HEURISTIC) {
             Ok(sig) => sig,
             Err(e) => panic!("{}", e),
         };
@@ -225,7 +225,7 @@ mod tests {
             Err(e) => panic!("{}", e),
         };
 
-        match handle.verify(digest.to_vec(), SIG.to_vec(), crate::KCAPI_ACCESS_HEURISTIC) {
+        match handle.verify(digest.to_vec(), SIG.to_vec(), crate::ACCESS_HEURISTIC) {
             Ok(()) => {}
             Err(e) => panic!("{}", e),
         };
@@ -251,7 +251,7 @@ mod tests {
 
         let mut sig = SIG.to_vec().clone();
         sig[SIG.len() - 1] ^= 0x01;
-        match handle.verify(digest.to_vec(), sig, crate::KCAPI_ACCESS_HEURISTIC) {
+        match handle.verify(digest.to_vec(), sig, crate::ACCESS_HEURISTIC) {
             Ok(()) => panic!("(BUG) Invalid signature successfully verified!"),
             Err(_e) => {}
         };
@@ -276,7 +276,7 @@ mod tests {
             Err(e) => panic!("{}", e),
         };
 
-        match handle.verify(digest.to_vec(), SIG.to_vec(), crate::KCAPI_ACCESS_HEURISTIC) {
+        match handle.verify(digest.to_vec(), SIG.to_vec(), crate::ACCESS_HEURISTIC) {
             Ok(()) => panic!("(BUG) Signature on invalid digest successfully verified!"),
             Err(_e) => {}
         };
@@ -302,7 +302,7 @@ mod tests {
             Err(e) => panic!("{}", e),
         };
 
-        match handle.verify(digest.to_vec(), SIG.to_vec(), crate::KCAPI_ACCESS_HEURISTIC) {
+        match handle.verify(digest.to_vec(), SIG.to_vec(), crate::ACCESS_HEURISTIC) {
             Ok(()) => panic!("(BUG) Signature successfully verified with invalid key!"),
             Err(_e) => {}
         };

@@ -34,7 +34,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{KcapiError, KcapiResult, BITS_PER_BYTE, KCAPI_INIT_AIO};
+use crate::{KcapiError, KcapiResult, BITS_PER_BYTE, INIT_AIO};
 
 const SHA1_BITSIZE: usize = 160;
 const SHA224_BITSIZE: usize = 224;
@@ -66,8 +66,7 @@ impl KcapiHash {
 
         let alg = CString::new(algorithm).expect("Failed to create CString");
         unsafe {
-            let ret =
-                kcapi_sys::kcapi_md_init(&mut handle as *mut _, alg.as_ptr(), !KCAPI_INIT_AIO);
+            let ret = kcapi_sys::kcapi_md_init(&mut handle as *mut _, alg.as_ptr(), !INIT_AIO);
             if ret < 0 {
                 return Err(KcapiError {
                     code: ret.into(),

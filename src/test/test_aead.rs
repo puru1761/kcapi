@@ -35,7 +35,7 @@
 #[cfg(test)]
 mod tests {
     use crate::aead::KcapiAEADOutput;
-    use crate::KCAPI_ACCESS_HEURISTIC;
+    use crate::ACCESS_HEURISTIC;
 
     #[test]
     fn test_encrypt() {
@@ -74,7 +74,7 @@ mod tests {
             iv,
             assocdata,
             taglen,
-            KCAPI_ACCESS_HEURISTIC,
+            ACCESS_HEURISTIC,
             0,
         ) {
             Ok(ct) => ct,
@@ -126,7 +126,7 @@ mod tests {
             iv,
             assocdata,
             tag,
-            KCAPI_ACCESS_HEURISTIC,
+            ACCESS_HEURISTIC,
             0,
         ) {
             Ok(ct) => ct,
@@ -156,7 +156,7 @@ mod tests {
             iv,
             assocdata,
             taglen,
-            KCAPI_ACCESS_HEURISTIC,
+            ACCESS_HEURISTIC,
             0,
         ) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid IV size"),
@@ -178,16 +178,7 @@ mod tests {
         let assocdata = vec![0u8; 16];
         let iv = vec![0u8; 4];
 
-        match crate::aead::decrypt(
-            "gcm(aes)",
-            key,
-            ct,
-            iv,
-            assocdata,
-            tag,
-            KCAPI_ACCESS_HEURISTIC,
-            0,
-        ) {
+        match crate::aead::decrypt("gcm(aes)", key, ct, iv, assocdata, tag, ACCESS_HEURISTIC, 0) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid IV size"),
             Err(_e) => {}
         };
@@ -211,7 +202,7 @@ mod tests {
             iv,
             assocdata,
             taglen,
-            KCAPI_ACCESS_HEURISTIC,
+            ACCESS_HEURISTIC,
             0,
         ) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid tag size"),
@@ -233,16 +224,7 @@ mod tests {
         let assocdata = vec![0u8; 16];
         let iv = vec![0u8; 12];
 
-        match crate::aead::decrypt(
-            "gcm(aes)",
-            key,
-            ct,
-            iv,
-            assocdata,
-            tag,
-            KCAPI_ACCESS_HEURISTIC,
-            0,
-        ) {
+        match crate::aead::decrypt("gcm(aes)", key, ct, iv, assocdata, tag, ACCESS_HEURISTIC, 0) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid tag size"),
             Err(_e) => {}
         };
@@ -262,16 +244,7 @@ mod tests {
         let assocdata = vec![0u8; 16];
         let iv = vec![0u8; 12];
 
-        match crate::aead::decrypt(
-            "gcm(aes)",
-            key,
-            ct,
-            iv,
-            assocdata,
-            tag,
-            KCAPI_ACCESS_HEURISTIC,
-            0,
-        ) {
+        match crate::aead::decrypt("gcm(aes)", key, ct, iv, assocdata, tag, ACCESS_HEURISTIC, 0) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid tag"),
             Err(e) => {
                 assert_eq!(e.code, -libc::EBADMSG as i64);

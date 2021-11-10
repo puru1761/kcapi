@@ -34,7 +34,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{IOVec, KcapiError, KcapiResult, BITS_PER_BYTE, KCAPI_INIT_AIO};
+use crate::{IOVec, KcapiError, KcapiResult, BITS_PER_BYTE, INIT_AIO};
 
 const AES_BLOCKSIZE_BITS: usize = 128;
 const AES128_KEYSIZE_BITS: usize = 128;
@@ -294,7 +294,7 @@ impl KcapiSKCipher {
         iv: Vec<u8>,
         pt: Vec<Vec<u8>>,
     ) -> KcapiResult<Self> {
-        let mut cipher = Self::new(algorithm, !KCAPI_INIT_AIO)?;
+        let mut cipher = Self::new(algorithm, !INIT_AIO)?;
         cipher.setkey(key)?;
         cipher.iv = iv.clone();
         cipher.stream_mode = SKCipherMode::Encrypt;
@@ -340,7 +340,7 @@ impl KcapiSKCipher {
         iv: Vec<u8>,
         ct: Vec<Vec<u8>>,
     ) -> KcapiResult<Self> {
-        let mut cipher = Self::new(algorithm, !KCAPI_INIT_AIO)?;
+        let mut cipher = Self::new(algorithm, !INIT_AIO)?;
         cipher.setkey(key)?;
         cipher.iv = iv.clone();
         cipher.stream_mode = SKCipherMode::Decrypt;
@@ -463,7 +463,7 @@ pub fn encrypt(
     iv: Vec<u8>,
     access: u32,
 ) -> KcapiResult<Vec<u8>> {
-    let mut cipher = KcapiSKCipher::new(alg, !KCAPI_INIT_AIO)?;
+    let mut cipher = KcapiSKCipher::new(alg, !INIT_AIO)?;
     cipher.setkey(key)?;
     let ct = cipher.encrypt(pt, iv, access)?;
 
@@ -477,7 +477,7 @@ pub fn encrypt_aio(
     iv: Vec<u8>,
     access: u32,
 ) -> KcapiResult<Vec<Vec<u8>>> {
-    let mut cipher = KcapiSKCipher::new(alg, KCAPI_INIT_AIO)?;
+    let mut cipher = KcapiSKCipher::new(alg, INIT_AIO)?;
     cipher.setkey(key)?;
     let ct = cipher.encrypt_aio(pt, iv, access)?;
 
@@ -491,7 +491,7 @@ pub fn decrypt(
     iv: Vec<u8>,
     access: u32,
 ) -> KcapiResult<Vec<u8>> {
-    let mut cipher = KcapiSKCipher::new(alg, !KCAPI_INIT_AIO)?;
+    let mut cipher = KcapiSKCipher::new(alg, !INIT_AIO)?;
     cipher.setkey(key)?;
     let pt = cipher.decrypt(ct, iv, access)?;
 
@@ -505,7 +505,7 @@ pub fn decrypt_aio(
     iv: Vec<u8>,
     access: u32,
 ) -> KcapiResult<Vec<Vec<u8>>> {
-    let mut cipher = crate::skcipher::KcapiSKCipher::new(alg, KCAPI_INIT_AIO)?;
+    let mut cipher = crate::skcipher::KcapiSKCipher::new(alg, INIT_AIO)?;
     cipher.setkey(key)?;
     let pt = cipher.decrypt_aio(ct, iv, access)?;
 
