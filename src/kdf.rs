@@ -38,6 +38,7 @@ use crate::{KcapiError, KcapiResult, KCAPI_INIT_AIO};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct KcapiKDF {
+    digestsize: usize,
     handle: *mut kcapi_sys::kcapi_handle,
     iteration_count: u32,
     key: Vec<u8>,
@@ -51,6 +52,7 @@ impl KcapiKDF {
 
         let alg = CString::new(algorithm).expect("Failed to allocate Cstring");
         let iteration_count: u32;
+        let digestsize: usize;
         unsafe {
             iteration_count = kcapi_sys::kcapi_pbkdf_iteration_count(alg.as_ptr(), 0);
 
@@ -65,10 +67,22 @@ impl KcapiKDF {
                     ),
                 });
             }
+
+            digestsize = kcapi_sys::kcapi_md_digestsize(handle) as usize;
+            if digestsize == 0 {
+                return Err(KcapiError {
+                    code: -libc::EINVAL as i64,
+                    message: format!(
+                        "Failed to obtain digestsize for algorithm '{}'",
+                        algorithm,
+                    ),
+                });
+            }
         }
 
         let key: Vec<u8> = Vec::new();
         Ok(KcapiKDF {
+            digestsize,
             handle,
             iteration_count,
             key,
@@ -137,6 +151,17 @@ impl KcapiKDF {
     }
 
     pub fn fb_kdf(&self, input: Vec<u8>, outsize: usize) -> KcapiResult<Vec<u8>> {
+        if input.len() < self.digestsize {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Invalid input of length {} < {} for FB-KDF algorithm '{}'",
+                    input.len(),
+                    self.digestsize,
+                    self.algorithm,
+                ),
+            });
+        }
         let mut out = vec![0u8; outsize];
         unsafe {
             let ret = kcapi_sys::kcapi_kdf_fb(
