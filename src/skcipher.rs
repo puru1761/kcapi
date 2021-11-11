@@ -199,19 +199,15 @@ impl KcapiSKCipher {
             });
         }
 
-        let iovlen = pt.len();
-        let mut ptvec = pt.clone();
-        let mut ctvec = pt;
-
-        let mut iniov = IOVec::new(&mut ptvec, iovlen);
-        let mut outiov = IOVec::new(&mut ctvec, iovlen);
+        let mut iniov = IOVec::new(pt.clone())?;
+        let mut outiov = IOVec::new(pt)?;
 
         unsafe {
             let ret = kcapi_sys::kcapi_cipher_encrypt_aio(
                 self.handle,
                 iniov.iovec.as_mut_ptr(),
                 outiov.iovec.as_mut_ptr(),
-                iovlen as kcapi_sys::size_t,
+                iniov.len() as kcapi_sys::size_t,
                 iv.as_ptr(),
                 access as ::std::os::raw::c_int,
             );
@@ -222,7 +218,7 @@ impl KcapiSKCipher {
                 });
             }
         }
-        Ok(ctvec)
+        Ok(outiov.data)
     }
 
     pub fn decrypt(&self, ct: Vec<u8>, iv: Vec<u8>, access: u32) -> KcapiResult<Vec<u8>> {
@@ -262,19 +258,15 @@ impl KcapiSKCipher {
             });
         }
 
-        let iovlen = ct.len();
-        let mut ctvec = ct.clone();
-        let mut ptvec = ct;
-
-        let mut iniov = IOVec::new(&mut ctvec, iovlen);
-        let mut outiov = IOVec::new(&mut ptvec, iovlen);
+        let mut iniov = IOVec::new(ct.clone())?;
+        let mut outiov = IOVec::new(ct)?;
 
         unsafe {
             let ret = kcapi_sys::kcapi_cipher_decrypt_aio(
                 self.handle,
                 iniov.iovec.as_mut_ptr(),
                 outiov.iovec.as_mut_ptr(),
-                iovlen as kcapi_sys::size_t,
+                iniov.len() as kcapi_sys::size_t,
                 iv.as_ptr(),
                 access as ::std::os::raw::c_int,
             );
@@ -285,7 +277,7 @@ impl KcapiSKCipher {
                 });
             }
         }
-        Ok(ptvec)
+        Ok(outiov.data)
     }
 
     pub fn new_enc_stream(
@@ -296,11 +288,22 @@ impl KcapiSKCipher {
     ) -> KcapiResult<Self> {
         let mut cipher = Self::new(algorithm, !INIT_AIO)?;
         cipher.setkey(key)?;
+
+        if iv.len() != cipher.ivsize {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Invalid IV of length {}, Expected IV of length {} for algorithm '{}'",
+                    iv.len(),
+                    cipher.ivsize,
+                    algorithm,
+                ),
+            });
+        }
         cipher.iv = iv.clone();
         cipher.stream_mode = SKCipherMode::Encrypt;
 
-        let iovlen = pt.len();
-        if iovlen == 0 {
+        if pt.is_empty() {
             return Err(KcapiError {
                 code: -libc::EINVAL as i64,
                 message: format!(
@@ -309,16 +312,14 @@ impl KcapiSKCipher {
                 ),
             });
         }
-
-        let mut ptvec = pt;
-        let mut iov = IOVec::new(&mut ptvec, iovlen);
+        let mut iov = IOVec::new(pt)?;
 
         unsafe {
             let ret = kcapi_sys::kcapi_cipher_stream_init_enc(
                 cipher.handle,
                 iv.as_ptr(),
                 iov.iovec.as_mut_ptr(),
-                iovlen as kcapi_sys::size_t,
+                iov.len() as kcapi_sys::size_t,
             );
             if ret < 0 {
                 return Err(KcapiError {
@@ -330,7 +331,7 @@ impl KcapiSKCipher {
                 });
             }
         }
-        cipher.invec.extend_from_slice(ptvec.as_slice());
+        cipher.invec.extend_from_slice(iov.data.as_slice());
         Ok(cipher)
     }
 
@@ -342,11 +343,22 @@ impl KcapiSKCipher {
     ) -> KcapiResult<Self> {
         let mut cipher = Self::new(algorithm, !INIT_AIO)?;
         cipher.setkey(key)?;
+
+        if iv.len() != cipher.ivsize {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Invalid IV of length {}, Expected IV of length {} for algorithm '{}'",
+                    iv.len(),
+                    cipher.ivsize,
+                    algorithm,
+                ),
+            });
+        }
         cipher.iv = iv.clone();
         cipher.stream_mode = SKCipherMode::Decrypt;
 
-        let iovlen = ct.len();
-        if iovlen == 0 {
+        if ct.is_empty() {
             return Err(KcapiError {
                 code: -libc::EINVAL as i64,
                 message: format!(
@@ -355,16 +367,14 @@ impl KcapiSKCipher {
                 ),
             });
         }
-
-        let mut ctvec = ct;
-        let mut iov = IOVec::new(&mut ctvec, iovlen);
+        let mut iov = IOVec::new(ct)?;
 
         unsafe {
             let ret = kcapi_sys::kcapi_cipher_stream_init_dec(
                 cipher.handle,
                 iv.as_ptr(),
                 iov.iovec.as_mut_ptr(),
-                iovlen as kcapi_sys::size_t,
+                iov.len() as kcapi_sys::size_t,
             );
             if ret < 0 {
                 return Err(KcapiError {
@@ -376,20 +386,17 @@ impl KcapiSKCipher {
                 });
             }
         }
-        cipher.invec.extend_from_slice(ctvec.as_slice());
+        cipher.invec.extend_from_slice(iov.data.as_slice());
         Ok(cipher)
     }
 
     pub fn stream_update(&mut self, input: Vec<Vec<u8>>) -> KcapiResult<()> {
-        let iovlen = input.len();
-        let mut ivec = input;
-        let mut iov = IOVec::new(&mut ivec, iovlen);
-
+        let mut iov = IOVec::new(input)?;
         unsafe {
             let ret = kcapi_sys::kcapi_cipher_stream_update(
                 self.handle,
                 iov.iovec.as_mut_ptr(),
-                iovlen as kcapi_sys::size_t,
+                iov.len() as kcapi_sys::size_t,
             );
             if ret < 0 {
                 return Err(KcapiError {
@@ -401,20 +408,18 @@ impl KcapiSKCipher {
                 });
             }
         }
-        self.invec.extend_from_slice(ivec.as_slice());
+        self.invec.extend_from_slice(iov.data.as_slice());
         Ok(())
     }
 
     pub fn stream_update_last(&mut self, input: Vec<Vec<u8>>) -> KcapiResult<()> {
-        let iovlen = input.len();
-        let mut ivec = input;
-        let mut iov = IOVec::new(&mut ivec, iovlen);
+        let mut iov = IOVec::new(input)?;
 
         unsafe {
             let ret = kcapi_sys::kcapi_cipher_stream_update_last(
                 self.handle,
                 iov.iovec.as_mut_ptr(),
-                iovlen as kcapi_sys::size_t,
+                iov.len() as kcapi_sys::size_t,
             );
             if ret < 0 {
                 return Err(KcapiError {
@@ -426,20 +431,19 @@ impl KcapiSKCipher {
                 });
             }
         }
-        self.invec.extend_from_slice(ivec.as_slice());
+        self.invec.extend_from_slice(iov.data.as_slice());
         Ok(())
     }
 
     pub fn stream_op(&mut self) -> KcapiResult<Vec<Vec<u8>>> {
-        let iovlen = self.invec.len();
-        let mut outvec = self.invec.clone();
-        let mut iov = IOVec::new(&mut outvec, iovlen);
+        let outvec = self.invec.clone();
+        let mut iov = IOVec::new(outvec)?;
 
         unsafe {
             let ret = kcapi_sys::kcapi_cipher_stream_op(
                 self.handle,
                 iov.iovec.as_mut_ptr(),
-                iovlen as kcapi_sys::size_t,
+                iov.len() as kcapi_sys::size_t,
             );
             if ret < 0 {
                 return Err(KcapiError {
@@ -452,7 +456,7 @@ impl KcapiSKCipher {
             }
         }
         self.invec = Vec::new();
-        Ok(outvec)
+        Ok(iov.data)
     }
 }
 

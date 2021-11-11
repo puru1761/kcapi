@@ -66,20 +66,65 @@ struct kcapi_handle {
 pub struct IOVec {
     iovec: Vec<kcapi_sys::iovec>,
     iovlen: usize,
+    data: Vec<Vec<u8>>,
 }
 
 impl IOVec {
-    fn new(iov: &mut Vec<Vec<u8>>, iovlen: usize) -> Self {
-        let iovlen = iovlen;
+    pub fn new(iov: Vec<Vec<u8>>) -> KcapiResult<Self> {
+        if iov.is_empty() {
+            return Err(KcapiError {
+                code: -libc::EINVAL as i64,
+                message: format!(
+                    "Cannot create an IOVec from a vector of length {}",
+                    iov.len(),
+                ),
+            });
+        }
+
         let mut iovec = Vec::new();
-        for i in iov.iter_mut().take(iovlen) {
+        let ilen = iov.len();
+        let mut data = iov;
+        for i in data.iter_mut().take(ilen) {
             iovec.push(kcapi_sys::iovec {
                 iov_base: i.as_mut_ptr() as *mut ::std::os::raw::c_void,
                 iov_len: i.len() as kcapi_sys::size_t,
             });
         }
+        let iovlen = iovec.len();
+        Ok(IOVec {
+            iovec,
+            iovlen,
+            data,
+        })
+    }
 
-        IOVec { iovec, iovlen }
+    pub fn len(&self) -> usize {
+        self.iovlen
+    }
+
+    pub fn is_empty(&self) -> bool {
+        if self.iovlen == 0 {
+            return true;
+        }
+        false
+    }
+
+    pub fn push(&mut self, buf: Vec<u8>) {
+        let mut bufp = buf;
+        self.iovec.push(kcapi_sys::iovec {
+            iov_base: bufp.as_mut_ptr() as *mut ::std::os::raw::c_void,
+            iov_len: bufp.len() as kcapi_sys::size_t,
+        });
+        self.iovlen += 1;
+    }
+
+    pub fn pop(&mut self) -> Option<Vec<u8>> {
+        if let Some(_i) = self.iovec.pop() {
+            self.iovlen -= 1;
+            let out = self.data.pop();
+            return out;
+        }
+        None
     }
 }
 
