@@ -32,10 +32,53 @@
  *
  */
 
+//!
+//! # Key Derivation Functions (kdf) using the Kernel Crypto API (KCAPI)
+//!
+//! This module provides the capability to perform Key Derivation Functions using
+//! the KCAPI. The APIs provided by this module allow the initialization of
+//! KDF handles, setting the key for HMAC based KDFs, as well as KDFs in
+//! Counter Mode, Feedback Mode, and Double Pipeline Mode. Additionally,
+//! convenience functions to perform Password-based and the Extract-and-Expand
+//! HKDF (RFC5869) are also provided.
+//!
+//! # Layout
+//!
+//! This module provides the one-shot convenience APIs for performing
+//! Password-based KDF as well as Extract-and-Expand HKDF (RFC5869).
+//! Along with these, the `KcapiKDF` type is provided which allows
+//! the initialization, and setkey functions for Counter Mode, Feedback Mode,
+//! and Double Pipeline Mode KDFs.
+//!
 use std::ffi::CString;
 
 use crate::{KcapiError, KcapiResult, INIT_AIO};
 
+///
+/// # The `KcapiKDF` Type
+///
+/// This type denotes a generic context for KDF operations performed using the
+/// KCAPI. A new instance of this struct must be initialized prior to accessing
+/// any of it's APIs. A hash algorithm from `/proc/crypto` must be provided as
+/// in order to create an instance of this struct using the `new()` method.
+///
+/// # Panics
+///
+/// If the string provided to the `new()` method of this type cannot be converted
+/// into a valid `std::ffi::CString`, the initialization will panic with the message
+/// `Failed to allocate CString`.
+///
+/// # Examples
+///
+/// ```
+/// use kcapi::kdf::KcapiKDF;
+///
+/// let mut kdf = match KcapiKDF::new("hmac(sha1)") {
+///     Ok(kdf) => kdf,
+///     Err(e) => panic!("{}", e),
+/// };
+/// ```
+///
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct KcapiKDF {
     digestsize: usize,
@@ -46,6 +89,24 @@ pub struct KcapiKDF {
 }
 
 impl KcapiKDF {
+    ///
+    /// Initialize a the `KcapiKDF` type.
+    ///
+    /// This function initializes the `KcapiKDF` type for a hash algorithm from
+    /// `/proc/crypto`. The name of the hash provided as the `algorithm` argument
+    /// to this function MUST be present in `/proc/crypto` on the target platform.
+    ///
+    /// On success, an initialized instance of the `KcapiKDF` type is returned.
+    /// On failure, a `KcapiError` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kcapi::kdf::KcapiKDF;
+    ///
+    /// let kdf = KcapiKDF::new("hmac(sha512)")
+    ///     .expect("Failed to initialize KcapiKDF");
+    /// ```
     pub fn new(algorithm: &str) -> KcapiResult<Self> {
         let mut handle = Box::into_raw(Box::new(crate::kcapi_handle { _unused: [0u8; 0] }))
             as *mut kcapi_sys::kcapi_handle;
@@ -86,6 +147,31 @@ impl KcapiKDF {
         })
     }
 
+    ///
+    /// Set the key for the `KcapiKDF` instance.
+    ///
+    /// This function sets the key used in a keyed message digest algorithm for
+    /// the KDF operation. A call to this function is only required if the
+    /// algorithm with which the `KcapiKDF` is initialized is a keyed message
+    /// digest.
+    ///
+    /// This function takes a key as a `Vec<u8>`
+    ///
+    /// On failure, a `KcapiError` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kcapi::kdf::KcapiKDF;
+    ///
+    /// let mut kdf = KcapiKDF::new("hmac(sha1)")
+    ///     .expect("Failed to initialize KcapiKDF");
+    ///
+    /// let key = vec![0x00u8; 16];
+    /// kdf.setkey(key)
+    ///     .expect("Failed to set key for KcapiKDF");
+    /// ```
+    ///
     pub fn setkey(&mut self, key: Vec<u8>) -> KcapiResult<()> {
         unsafe {
             let ret = kcapi_sys::kcapi_md_setkey(self.handle, key.as_ptr(), key.len() as u32);
@@ -100,6 +186,44 @@ impl KcapiKDF {
         Ok(())
     }
 
+    ///
+    /// Counter Mode Key Derivation Function
+    ///
+    /// This function is an implementation of the KDF in counter mode according
+    /// to SP800-108 section 5.1 as well as SP800-56A section 5.8.1
+    /// (Single-step KDF).
+    ///
+    /// SP800-108: The caller must provide Label || 0x00 || Context in src.
+    /// SP800-56A: If a keyed MAC is used, the key shall NOT be the shared secret
+    /// from the DH operation, but an independently generated key. The src pointer
+    /// is defined as Z || other info where Z is the shared secret from DH and
+    /// other info is an arbitrary string (see SP800-56A section 5.8.1.2).
+    ///
+    /// This function takes input data of type `Vec<u8>`, and the size of the
+    /// key to be output as `usize`.
+    ///
+    /// On success, a `Vec<u8>` of size `outsize` is returned.
+    /// On failure, a `KcapiError` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kcapi::kdf::KcapiKDF;
+    ///
+    /// let mut kdf = KcapiKDF::new("hmac(sha1)")
+    ///     .expect("Failed to initialize CTR KDF");
+    ///
+    /// let key = vec![0x00u8; 16];
+    /// kdf.setkey(key)
+    ///     .expect("Failed to set key for CTR KDF");
+    ///
+    /// let inp = vec![0x01u8; 16];
+    /// let out = kdf.ctr_kdf(inp, 16)
+    ///     .expect("Failed to perform CTR KDF");
+    ///
+    /// assert_eq!(out.len(), 16);
+    /// ```
+    ///
     pub fn ctr_kdf(&self, input: Vec<u8>, outsize: usize) -> KcapiResult<Vec<u8>> {
         let mut out = vec![0u8; outsize];
         unsafe {
@@ -123,6 +247,38 @@ impl KcapiKDF {
         Ok(out)
     }
 
+    ///
+    /// Double Pipeline Mode Key Derivation Function
+    ///
+    /// This function is an implementation of the KDF in double pipeline
+    /// iteration mode according with counter to SP800-108 section 5.3.
+    /// The caller must provide Label || 0x00 || Context in src.
+    ///
+    /// This function takes input data of type `Vec<u8>`, and the size of the
+    /// key to be output as `usize`.
+    ///
+    /// On success, a `Vec<u8>` of size `outsize` is returned.
+    /// On failure, a `KcapiError` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kcapi::kdf::KcapiKDF;
+    ///
+    /// let mut kdf = KcapiKDF::new("hmac(sha1)")
+    ///     .expect("Failed to initialize DPI KDF");
+    ///
+    /// let key = vec![0x00u8; 16];
+    /// kdf.setkey(key)
+    ///     .expect("Failed to set key for DPI KDF");
+    ///
+    /// let inp = vec![0x01u8; 16];
+    /// let out = kdf.dpi_kdf(inp, 16)
+    ///     .expect("Failed to perform DPI KDF");
+    ///
+    /// assert_eq!(out.len(), 16);
+    /// ```
+    ///
     pub fn dpi_kdf(&self, input: Vec<u8>, outsize: usize) -> KcapiResult<Vec<u8>> {
         let mut out = vec![0u8; outsize];
         unsafe {
@@ -146,6 +302,45 @@ impl KcapiKDF {
         Ok(out)
     }
 
+    ///
+    /// Feedback Mode Key Derivation Function
+    ///
+    /// This function is an implementation of the KDF in feedback mode with a
+    /// non-NULL IV and with counter according to SP800-108 section 5.2. The IV
+    /// is supplied with src and must be equal to the digestsize of the used
+    /// cipher.
+    ///
+    /// In addition, the caller must provide Label || 0x00 || Context in src.
+    /// This src pointer must not be NULL as the IV is required. The ultimate
+    /// format of the src pointer is IV || Label || 0x00 || Context where the
+    /// length of the IV is equal to the block size (i.e. the digest size of
+    /// the underlying hash) of the PRF.
+    ///
+    /// This function takes input data of type `Vec<u8>`, and the size of the
+    /// key to be output as `usize`.
+    ///
+    /// On success, a `Vec<u8>` of size `outsize` is returned.
+    /// On failure, a `KcapiError` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kcapi::kdf::KcapiKDF;
+    ///
+    /// let mut kdf = KcapiKDF::new("hmac(sha1)")
+    ///     .expect("Failed to initialize FB KDF");
+    ///
+    /// let key = vec![0x00u8; 32];
+    /// kdf.setkey(key)
+    ///     .expect("Failed to set key for FB KDF");
+    ///
+    /// let inp = vec![0x00u8; 20];
+    /// let out = kdf.fb_kdf(inp, 16)
+    ///     .expect("Failed to perform FB KDF");
+    ///
+    /// assert_eq!(out.len(), 16);
+    /// ```
+    ///
     pub fn fb_kdf(&self, input: Vec<u8>, outsize: usize) -> KcapiResult<Vec<u8>> {
         if input.len() < self.digestsize {
             return Err(KcapiError {
@@ -181,6 +376,35 @@ impl KcapiKDF {
     }
 }
 
+///
+/// Extract-and-Expand HKDF (RFC5869)
+///
+/// Perform the key-derivation function according to RFC5869. The input data is
+/// defined in sections 2.2 und 2.3 of RFC5869.
+///
+/// This function takes:
+/// * `hashname` - a `&str` representation of a hash algorithm from `/proc/crypto`.
+/// * `ikm` - Input Key Material of type `Vec<u8>`.
+/// * `salt` - Salt of type `Vec<u8>`
+/// * `info` - Information buffer of type `Vec<u8>`.
+/// * `outsize` - The size of the key to be generated of type `usize`.
+///
+/// On success, a `Vec<u8>` of length `outsize` is returned with the generated key.
+/// On failure, a `KcapiError` is returned.
+///
+/// # Examples
+///
+/// ```
+/// let ikm = vec![0u8; 16];
+/// let salt = vec![0u8; 16];
+/// let info = vec![0u8; 16];
+/// let outsize: usize = 32;
+///
+/// let key = kcapi::kdf::hkdf("hmac(sha1)", ikm, salt, info, outsize)
+///     .expect("Failed to perform HKDF");
+///
+/// assert_eq!(key.len(), 32);
+/// ```
 pub fn hkdf(
     hashname: &str,
     ikm: Vec<u8>,
@@ -222,6 +446,33 @@ pub fn hkdf(
     Ok(out)
 }
 
+///
+/// Password-based Key Derivation Function
+///
+/// This function is an implementation of the PBKDF as defined in SP800-132.
+///
+/// This function takes:
+/// * `hashname` - A `&str` representation of a hash algorithm from `/proc/crypto`.
+/// * `password` - A password of type `Vec<u8>` from which the key shall be derived.
+/// * `salt` - A salt of type `Vec<u8>`.
+/// * `iterations` - Number of iterations (`u32`) to be performed by the PBKDF.
+/// * `outsize` - The size of the key (`usize`) to be generated.
+///
+/// On success, a `Vec<u8>` of length `outsize` containing the key is returned.
+/// On failure, a `KcapiError` is returned.
+///
+/// # Examples
+///
+/// ```
+/// let password = "Password123!".as_bytes().to_vec();
+/// let salt = vec![0xffu8; 16];
+/// let iterations = 32;
+/// let outsize = 32;
+///
+/// let key = kcapi::kdf::pbkdf("hmac(sha256)", password, salt, iterations, outsize)
+///     .expect("Failed to perform PBKDF");
+/// ```
+///
 pub fn pbkdf(
     hashname: &str,
     password: Vec<u8>,
