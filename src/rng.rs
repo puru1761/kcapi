@@ -32,10 +32,51 @@
  *
  */
 
+//!
+//! # Random Number Generation (rng) using the Kernel Crypto API (KCAPI)
+//!
+//! This module provides the capability to perform random number generation using
+//! the KCAPI. The APIs provided by this module allow the seeding of kernel RNGs,
+//! as well as the generic output of randomness from the Linux kernel.
+//!
+//! # Layout
+//!
+//! This module provides one-shot convenience APIs for getting N random bytes
+//! from the kernel's `stdrng` as a `Vec<u8>` og length 'N'. Additionally,
+//! this module implements the `KcapiRNG` type which provides APIs to initialize,
+//! seed, and generate random data from a kernel RNG algorithm as defined in
+//! `/proc/crypto`.
+//!
+
 use std::{convert::TryInto, ffi::CString};
 
 use crate::{KcapiError, KcapiResult, INIT_AIO};
 
+///
+/// # The `KcapiRNG` Type
+///
+/// This type denotes a generic context for an RNG transform in the kernel.
+/// A new instance of this struct must be initialized in order to use it's APIs.
+///
+/// # Panics
+///
+/// If the string provided to the `new()` method of this type cannot be converted
+/// into a valid `std::ffi::CString`, the initialization will panic with the message
+/// `Failed to create CString`.
+///
+/// # Examples
+///
+/// A new instance of this struct must be initialized prior to use:
+///
+/// ```
+/// use kcapi::rng::KcapiRNG;
+///
+/// let rng = match KcapiRNG::new("drbg_nopr_hmac_sha512") {
+///     Ok(rng) => rng,
+///     Err(e) => panic!("{}", e),
+/// };
+/// ```
+///
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct KcapiRNG {
     handle: *mut kcapi_sys::kcapi_handle,
@@ -44,6 +85,26 @@ pub struct KcapiRNG {
 }
 
 impl KcapiRNG {
+    ///
+    /// Initialize an RNG transform in the Linux Kernel
+    ///
+    /// This API provides the initialization of a new instance of `KcapiRNG` and
+    /// makes the required connections to the Linux Kernel.
+    /// The caller must specify the algorithm used for the RNG, and it must be
+    /// specified in `/proc/crypto`.
+    ///
+    /// On success, an initialized instance of `KcapiRNG` is returned.
+    /// On failure, a `KcapiError` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kcapi::rng::KcapiRNG;
+    ///
+    /// let rng = KcapiRNG::new("drbg_nopr_hmac_sha512")
+    ///     .expect("Failed to initialize KcapiRNG");
+    /// ```
+    ///
     pub fn new(algorithm: &str) -> KcapiResult<Self> {
         let mut handle = Box::into_raw(Box::new(crate::kcapi_handle { _unused: [0u8; 0] }))
             as *mut kcapi_sys::kcapi_handle;
@@ -75,6 +136,29 @@ impl KcapiRNG {
         })
     }
 
+    ///
+    /// Seed the Kernel RNG
+    ///
+    /// This function must be called to initialize the selected RNG.
+    /// When the SP800-90A DRBG is used, this call causes the DRBG to seed itself
+    /// from the internal noise sources.
+    /// An `Vec<u8>` must be provided as the input data (seed) to this function.
+    ///
+    /// On failure, a `KcapiError` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kcapi::rng::KcapiRNG;
+    ///
+    /// let seed = vec![0xffu8; 16];
+    /// let mut rng = KcapiRNG::new("drbg_nopr_hmac_sha512")
+    ///     .expect("Failed to initialize KcapiRNG");
+    ///
+    /// rng.seed(seed)
+    ///     .expect("Failed to seed the kernel RNG");
+    /// ```
+    ///
     pub fn seed(&self, mut data: Vec<u8>) -> KcapiResult<()> {
         unsafe {
             let ret = kcapi_sys::kcapi_rng_seed(self.handle, data.as_mut_ptr(), data.len() as u32);
@@ -88,6 +172,34 @@ impl KcapiRNG {
         Ok(())
     }
 
+    ///
+    /// Generate a random number
+    ///
+    /// This function is used to generate a random number of `count` bytes
+    /// from an initialized and seeded RNG. The RNG must be seeded by calling
+    /// `seed()` prior to calling this function.
+    /// This function must be provided with a `count` argument of `usize`
+    /// denoting the length (in bytes) of the random number to be generated.
+    ///
+    /// On success, returns a `Vec<u8>` of length `count` with the random data.
+    /// On failure, returns a `KcapiError`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kcapi::rng::KcapiRNG;
+    ///
+    /// let rng = KcapiRNG::new("drbg_nopr_hmac_sha512")
+    ///     .expect("Failed to initialize KcapiRNG");
+    ///
+    /// let seed = vec![0xffu8; 16];
+    /// rng.seed(seed)
+    ///     .expect("Failed to seed KcapiRNG");
+    ///
+    /// let random = rng.generate(1024)
+    ///     .expect("Failed to generate a random number of 1024 bytes");
+    /// ```
+    ///
     pub fn generate(&self, count: usize) -> KcapiResult<Vec<u8>> {
         let mut out = vec![0u8; count];
         unsafe {
@@ -110,6 +222,25 @@ impl KcapiRNG {
     }
 }
 
+///
+/// Convenience function to generate random bytes
+///
+/// This convenience function generates a `count` number of random bytes from
+/// the `stdrng` from `/proc/crypto`.
+/// This function accepts an argument `count` of type `usize` denoting the number
+/// of random bytes to generate.
+///
+/// On success, returns a `Vec<u8>` of length `count` containing the random data.
+/// On failure, returns a `KcapiError`.
+///
+/// # Examples
+///
+/// ```
+/// let random = kcapi::rng::get_bytes(1024)
+///     .expect("Failed to generate random bytes");
+/// assert_eq!(random.len(), 1024);
+/// ```
+///
 pub fn get_bytes(count: usize) -> KcapiResult<Vec<u8>> {
     let mut out = vec![0u8; count];
     unsafe {
