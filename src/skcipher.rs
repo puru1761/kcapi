@@ -34,7 +34,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{IOVec, KcapiError, KcapiResult, BITS_PER_BYTE, INIT_AIO};
+use crate::{IOVec, IOVecTrait, KcapiError, KcapiResult, BITS_PER_BYTE, INIT_AIO};
 
 const AES_BLOCKSIZE_BITS: usize = 128;
 const AES128_KEYSIZE_BITS: usize = 128;

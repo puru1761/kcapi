@@ -63,14 +63,24 @@ struct kcapi_handle {
 }
 
 #[derive(Debug, Clone)]
-pub struct IOVec {
+pub struct IOVec<T> {
     iovec: Vec<kcapi_sys::iovec>,
     iovlen: usize,
-    data: Vec<Vec<u8>>,
+    data: Vec<T>,
 }
 
-impl IOVec {
-    pub fn new(iov: Vec<Vec<u8>>) -> KcapiResult<Self> {
+pub trait IOVecTrait<T> {
+    fn new(iov: Vec<T>) -> KcapiResult<Self>
+    where
+        Self: Sized;
+    fn len(&self) -> usize;
+    fn is_empty(&self) -> bool;
+    fn push(&mut self, buf: T);
+    fn pop(&mut self) -> Option<T>;
+}
+
+impl IOVecTrait<Vec<u8>> for IOVec<Vec<u8>> {
+    fn new(iov: Vec<Vec<u8>>) -> KcapiResult<Self> {
         if iov.is_empty() {
             return Err(KcapiError {
                 code: -libc::EINVAL as i64,
@@ -98,18 +108,18 @@ impl IOVec {
         })
     }
 
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.iovlen
     }
 
-    pub fn is_empty(&self) -> bool {
+    fn is_empty(&self) -> bool {
         if self.iovlen == 0 {
             return true;
         }
         false
     }
 
-    pub fn push(&mut self, buf: Vec<u8>) {
+    fn push(&mut self, buf: Vec<u8>) {
         let mut bufp = buf;
         self.iovec.push(kcapi_sys::iovec {
             iov_base: bufp.as_mut_ptr() as *mut ::std::os::raw::c_void,
@@ -118,7 +128,7 @@ impl IOVec {
         self.iovlen += 1;
     }
 
-    pub fn pop(&mut self) -> Option<Vec<u8>> {
+    fn pop(&mut self) -> Option<Vec<u8>> {
         if let Some(_i) = self.iovec.pop() {
             self.iovlen -= 1;
             let out = self.data.pop();
