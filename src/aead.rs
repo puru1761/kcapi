@@ -82,7 +82,7 @@ use crate::{KcapiError, KcapiResult};
 ///     vec![0u8; 16],  // ciphertext
 ///     vec![0u8; 16],  // associated data
 ///     vec![0u8; 16],  // authentication tag
-/// )
+/// );
 /// ```
 ///
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
