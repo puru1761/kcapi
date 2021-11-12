@@ -468,14 +468,12 @@ pub fn encrypt(
     data: KcapiAEADData,
     key: Vec<u8>,
     iv: Vec<u8>,
-    access: u32,
-    flags: u32,
 ) -> KcapiResult<KcapiAEADData> {
-    let mut cipher = KcapiAEAD::new(alg, flags)?;
+    let mut cipher = KcapiAEAD::new(alg, !crate::INIT_AIO)?;
     cipher.set_tagsize(data.taglen())?;
     cipher.set_assocdata(data.get_assocdata());
     cipher.setkey(key)?;
-    let output = cipher.encrypt(data.get_data(), iv, access)?;
+    let output = cipher.encrypt(data.get_data(), iv, crate::ACCESS_HEURISTIC)?;
     Ok(output)
 }
 
@@ -484,13 +482,11 @@ pub fn decrypt(
     data: KcapiAEADData,
     key: Vec<u8>,
     iv: Vec<u8>,
-    access: u32,
-    flags: u32,
 ) -> KcapiResult<KcapiAEADData> {
-    let mut cipher = KcapiAEAD::new(alg, flags)?;
+    let mut cipher = KcapiAEAD::new(alg, !crate::INIT_AIO)?;
     cipher.set_tag(data.get_tag())?;
     cipher.set_assocdata(data.get_assocdata());
     cipher.setkey(key)?;
-    let output = cipher.decrypt(data.get_data(), iv, access)?;
+    let output = cipher.decrypt(data.get_data(), iv, crate::ACCESS_HEURISTIC)?;
     Ok(output)
 }
