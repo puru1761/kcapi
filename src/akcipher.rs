@@ -32,10 +32,59 @@
  *
  */
 
+//!
+//! # Asymmetric Key Ciphers (akcipher) using the Kernel Crypto API
+//!
+//! This module is **EXPERIMENTAL**
+//!
+//! This module provides the capability to perform asymmetric key encryption,
+//! decryption, signing, and verification using the KCAPI provided the following
+//! conditions are met:
+//!
+//! 1. The patches in the `kernel-patches` directory are successfully applied.
+//! 2. The kernel is compiled with `CONFIG_CRYPTO_USER_API_AKCIPHER=y`
+//!
+//! *Note:* Any asymmetric key cipher used with this module **MUST** be present
+//! in `/proc/crypto` on the target device.
+//!
+//! # Layout
+//!
+//! This module provides one-shot convenience functions to perform encryption,
+//! decryption, signing, and verification using any AK cipher present in
+//! `/proc/crypto`. This module also provides the `KcapiAKCipher` type which
+//! provides APIs to initialize, set public and private keys, encrypt, decrypt,
+//! sign, and verify using the appropriate algorithm from `/proc/crypto`.
+//!
+//!
+//! ## Caveats
+//!
+//! Since the support to perform asymmetric cipher operations from userland is
+//! not present in the upstream Linux kernel, this module is still **EXPERIMENTAL**.
+//!
+
 use std::{convert::TryInto, ffi::CString};
 
 use crate::{KcapiError, KcapiResult, ACCESS_HEURISTIC, INIT_AIO};
 
+///
+/// # The `KcapiAKCipher` Type
+///
+/// This type denotes a generic context for an Asymmetric Key cipher transform
+/// in the Linux Kernel. An instance of this struct must be initialized using
+/// the `new()` call prior to being used. This type provides APIs to perform:
+///
+/// * setting of public and private keys.
+/// * encryption
+/// * decryption
+/// * signing
+/// * verification
+///
+/// ## Panics
+///
+/// If the string provided as input to the `new()` function cannot be converted into a
+/// `std::ffi::CString` type, the initialization will panic with the message
+/// `Failed to create CString`.
+///
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KcapiAKCipher {
     handle: *mut kcapi_sys::kcapi_handle,
@@ -46,6 +95,19 @@ pub struct KcapiAKCipher {
 }
 
 impl KcapiAKCipher {
+    ///
+    /// ## Initialize an instance of the `KcapiAKCipher` Type.
+    ///
+    /// This function initializes an instance of the `KcapiAKCipher` Type and
+    /// makes the necessary connections to the kernel through `kcapi-sys`.
+    ///
+    /// This function takes:
+    /// * `algorithm` - a `&str` representation of an `akcipher` algorithm in `/proc/crypto`
+    /// * `flags` - `u32` flags specifying the type of cipher handle.
+    ///
+    /// On success, an initialized instance of `KcapiAKCipher` is returned.
+    /// On failure, a `KcapiError` is returned.
+    ///
     pub fn new(algorithm: &str, flags: u32) -> KcapiResult<Self> {
         let mut handle = Box::into_raw(Box::new(crate::kcapi_handle { _unused: [0u8; 0] }))
             as *mut kcapi_sys::kcapi_handle;
@@ -75,6 +137,32 @@ impl KcapiAKCipher {
         })
     }
 
+    ///
+    /// ## Set the Private Key
+    ///
+    /// This function is used to set the private key for decryption and
+    /// signing operations.
+    ///
+    /// The key must be a `Vec<u8>` in DER format as follows:
+    ///
+    /// ```none
+    /// SEQUENCE {
+    ///     version INTEGER,
+    ///     n INTEGER ({ rsa_get_n }),
+    ///     e INTEGER ({ rsa_get_e }),
+    ///     d INTEGER ({ rsa_get_d }),
+    ///     prime1 INTEGER,
+    ///     prime2 INTEGER,
+    ///     exponent1 INTEGER,
+    ///     exponent2 INTEGER,
+    ///     coefficient INTEGER
+    /// }
+    /// ```
+    ///
+    /// This function takes:
+    /// * `privkey` - A `Vec<u8>` containing the key in the above format.
+    ///
+    /// On failure, a `KcapiError` is returned.
     pub fn setprivkey(&mut self, privkey: Vec<u8>) -> KcapiResult<()> {
         unsafe {
             let ret = kcapi_sys::kcapi_akcipher_setkey(
@@ -99,6 +187,26 @@ impl KcapiAKCipher {
         Ok(())
     }
 
+    ///
+    /// ## Set the Public Key
+    ///
+    /// This function is used to set the public key for encryption and
+    /// verification operations.
+    ///
+    /// The public key must be a `Vec<u8>` in DER format as follows:
+    ///
+    /// ```none
+    /// SEQUENCE {
+    ///     n INTEGER ({ rsa_get_n }),
+    ///     e INTEGER ({ rsa_get_e })
+    /// }
+    /// ```
+    ///
+    /// This function takes:
+    /// * `pubkey` - A `Vec<u8>` containing the public key in the above format.
+    ///
+    /// On failure, a `KcapiError` is returned.
+    ///
     pub fn setpubkey(&mut self, pubkey: Vec<u8>) -> KcapiResult<()> {
         unsafe {
             let ret = kcapi_sys::kcapi_akcipher_setpubkey(
@@ -121,6 +229,24 @@ impl KcapiAKCipher {
         Ok(())
     }
 
+    ///
+    /// ## Perform Asymmetric Encryption
+    ///
+    /// This function encrypts data using a public key. It is necessary to
+    /// set the publickey prior to calling `encrypt()`.
+    ///
+    /// *Note:* Only `self.modsize` bytes of data can be encrypted at a time.
+    ///
+    /// This function takes:
+    /// * `pt` - A `Vec<u8>` containing the plaintext to be encrypted.
+    /// * `access` - kernel access type (`u32`)
+    ///     - `ACCESS_HEURISTIC` - internal heuristic for fastest kernel access
+    ///     - `ACCESS_VMSPLICE` - vmsplice access
+    ///     - `ACCESS_SENDMSG` - sendmsg access
+    ///
+    /// On success, returns a `Vec<u8>` wih the encrypted ciphertext.
+    /// On failure, returns `KcapiError`
+    ///
     pub fn encrypt(&self, pt: Vec<u8>, access: u32) -> KcapiResult<Vec<u8>> {
         crate::akcipher::check_input(self, pt.clone())?;
 
@@ -144,6 +270,24 @@ impl KcapiAKCipher {
         Ok(ct)
     }
 
+    ///
+    /// ## Perform Asymmetric Decryption
+    ///
+    /// This function decrypts data using a private key. It is necessary to
+    /// set the privatekey prior to calling `decrypt()`.
+    ///
+    /// *Note:* Only `self.modsize` bytes of data can be decrypted at a time.
+    ///
+    /// This function takes:
+    /// * `pt` - A `Vec<u8>` containing the ciphertext to be decrypted.
+    /// * `access` - kernel access type (`u32`)
+    ///     - `ACCESS_HEURISTIC` - internal heuristic for fastest kernel access
+    ///     - `ACCESS_VMSPLICE` - vmsplice access
+    ///     - `ACCESS_SENDMSG` - sendmsg access
+    ///
+    /// On success, returns a `Vec<u8>` wih the decrypted plaintext.
+    /// On failure, returns `KcapiError`
+    ///
     pub fn decrypt(&self, ct: Vec<u8>, access: u32) -> KcapiResult<Vec<u8>> {
         crate::akcipher::check_input(self, ct.clone())?;
 
@@ -167,6 +311,22 @@ impl KcapiAKCipher {
         Ok(pt)
     }
 
+    ///
+    /// ## Perform Signing
+    ///
+    /// This function signs data using a private key. It is necessary to
+    /// set the privatekey prior to calling `sign()`.
+    ///
+    /// This function takes:
+    /// * `message` - A `Vec<u8>` containing the message to be signed.
+    /// * `access` - kernel access type (`u32`)
+    ///     - `ACCESS_HEURISTIC` - internal heuristic for fastest kernel access
+    ///     - `ACCESS_VMSPLICE` - vmsplice access
+    ///     - `ACCESS_SENDMSG` - sendmsg access
+    ///
+    /// On success, returns a `Vec<u8>` wih the signature.
+    /// On failure, returns `KcapiError`
+    ///
     pub fn sign(&self, message: Vec<u8>, access: u32) -> KcapiResult<Vec<u8>> {
         crate::akcipher::check_input(self, message.clone())?;
 
@@ -190,6 +350,23 @@ impl KcapiAKCipher {
         Ok(sig)
     }
 
+    ///
+    /// ## Perform Signature Verification
+    ///
+    /// This function verifys data using a private key. It is necessary to
+    /// set the privatekey prior to calling `verify()`.
+    ///
+    /// This function takes:
+    /// * `message` - A `Vec<u8>` containing the message to be verified.
+    /// * `sig` - A `Vec<u8>` containing the signature to be verified.
+    /// * `access` - kernel access type (`u32`)
+    ///     - `ACCESS_HEURISTIC` - internal heuristic for fastest kernel access
+    ///     - `ACCESS_VMSPLICE` - vmsplice access
+    ///     - `ACCESS_SENDMSG` - sendmsg access
+    ///
+    /// On failure to verify the signature, returns `KcapiError` with the `code`
+    /// field set to `EBADMSG`.
+    ///
     pub fn verify(&self, message: Vec<u8>, sig: Vec<u8>, access: u32) -> KcapiResult<()> {
         crate::akcipher::check_input(self, sig.clone())?;
 
@@ -243,6 +420,30 @@ fn check_input(handle: &KcapiAKCipher, inp: Vec<u8>) -> KcapiResult<()> {
     Ok(())
 }
 
+///
+/// ## Convenience Function to Perform Asymmetric Encryption
+///
+/// This function encrypts data using a public key. The key provided
+/// for the encryption operation should be DER encoded in the following
+/// format:
+///
+/// ```none
+/// SEQUENCE {
+///     n INTEGER ({ rsa_get_n }),
+///     e INTEGER ({ rsa_get_e })
+/// }
+/// ```
+///
+/// *Note:* Only `self.modsize` bytes of data can be encrypted at a time.
+///
+/// This function takes:
+/// * `alg` - A `&str` representation of an akcipher algorithm from `/proc/crypto`.
+/// * `key` - A `Vec<u8>` with the public key.
+/// * `pt` - A `Vec<u8>` containing the plaintext to be encrypted.
+///
+/// On success, returns a `Vec<u8>` wih the encrypted ciphertext.
+/// On failure, returns `KcapiError`
+///
 pub fn encrypt(alg: &str, key: Vec<u8>, pt: Vec<u8>) -> KcapiResult<Vec<u8>> {
     let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setpubkey(key)?;
@@ -250,6 +451,36 @@ pub fn encrypt(alg: &str, key: Vec<u8>, pt: Vec<u8>) -> KcapiResult<Vec<u8>> {
     Ok(ct)
 }
 
+///
+/// ## Convenience Function to Perform Asymmetric Decryption
+///
+/// This function decrypts data using a private key.
+/// The key must be a `Vec<u8>` in DER format as follows:
+///
+/// ```none
+/// SEQUENCE {
+///     version INTEGER,
+///     n INTEGER ({ rsa_get_n }),
+///     e INTEGER ({ rsa_get_e }),
+///     d INTEGER ({ rsa_get_d }),
+///     prime1 INTEGER,
+///     prime2 INTEGER,
+///     exponent1 INTEGER,
+///     exponent2 INTEGER,
+///     coefficient INTEGER
+/// }
+/// ```
+///
+/// *Note:* Only `self.modsize` bytes of data can be decrypted at a time.
+///
+/// This function takes:
+/// * `alg` - A `&str` representation of an akcipher algorithm from `/proc/crypto`.
+/// * `key` - A `Vec<u8>` with the private key.
+/// * `ct` - A `Vec<u8>` containing the ciphertext to be decrypted.
+///
+/// On success, returns a `Vec<u8>` wih the decrypted plaintext.
+/// On failure, returns `KcapiError`
+///
 pub fn decrypt(alg: &str, key: Vec<u8>, ct: Vec<u8>) -> KcapiResult<Vec<u8>> {
     let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setprivkey(key)?;
@@ -257,6 +488,34 @@ pub fn decrypt(alg: &str, key: Vec<u8>, ct: Vec<u8>) -> KcapiResult<Vec<u8>> {
     Ok(pt)
 }
 
+///
+/// ## Convenience Function to Perform Signing
+///
+/// This function signs data using a private key.
+/// The key must be a `Vec<u8>` in DER format as follows:
+///
+/// ```none
+/// SEQUENCE {
+///     version INTEGER,
+///     n INTEGER ({ rsa_get_n }),
+///     e INTEGER ({ rsa_get_e }),
+///     d INTEGER ({ rsa_get_d }),
+///     prime1 INTEGER,
+///     prime2 INTEGER,
+///     exponent1 INTEGER,
+///     exponent2 INTEGER,
+///     coefficient INTEGER
+/// }
+/// ```
+///
+/// This function takes:
+/// * `alg` - A `&str` representation of an akcipher algorithm from `/proc/crypto`.
+/// * `key` - A `Vec<u8>` with the private key.
+/// * `message` - A `Vec<u8>` containing the message to be signed.
+///
+/// On success, returns a `Vec<u8>` wih the signature.
+/// On failure, returns `KcapiError`
+///
 pub fn sign(alg: &str, key: Vec<u8>, message: Vec<u8>) -> KcapiResult<Vec<u8>> {
     let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setprivkey(key)?;
@@ -264,6 +523,29 @@ pub fn sign(alg: &str, key: Vec<u8>, message: Vec<u8>) -> KcapiResult<Vec<u8>> {
     Ok(sig)
 }
 
+///
+/// ## Perform Signature Verification
+///
+/// This function verifys data using a private key. The key provided
+/// for the encryption operation should be DER encoded in the following
+/// format:
+///
+/// ```none
+/// SEQUENCE {
+///     n INTEGER ({ rsa_get_n }),
+///     e INTEGER ({ rsa_get_e })
+/// }
+/// ```
+///
+/// This function takes:
+/// * `alg` - A `&str` representation of an akcipher algorithm from `/proc/crypto`.
+/// * `key` - A `Vec<u8>` with the public key.
+/// * `message` - A `Vec<u8>` containing the message to be verified.
+/// * `sig` - A `Vec<u8>` containing the signature to be verified.
+///
+/// On failure to verify the signature, returns `KcapiError` with the `code`
+/// field set to `EBADMSG`.
+///
 pub fn verify(alg: &str, key: Vec<u8>, message: Vec<u8>, sig: Vec<u8>) -> KcapiResult<()> {
     let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setpubkey(key)?;
