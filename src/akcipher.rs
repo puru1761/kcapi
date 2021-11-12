@@ -34,7 +34,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{KcapiError, KcapiResult};
+use crate::{KcapiError, KcapiResult, ACCESS_HEURISTIC, INIT_AIO};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KcapiAKCipher {
@@ -243,55 +243,30 @@ fn check_input(handle: &KcapiAKCipher, inp: Vec<u8>) -> KcapiResult<()> {
     Ok(())
 }
 
-pub fn encrypt(
-    alg: &str,
-    key: Vec<u8>,
-    pt: Vec<u8>,
-    flags: u32,
-    access: u32,
-) -> KcapiResult<Vec<u8>> {
-    let mut handle = KcapiAKCipher::new(alg, flags)?;
+pub fn encrypt(alg: &str, key: Vec<u8>, pt: Vec<u8>) -> KcapiResult<Vec<u8>> {
+    let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setpubkey(key)?;
-    let ct = handle.encrypt(pt, access)?;
+    let ct = handle.encrypt(pt, ACCESS_HEURISTIC)?;
     Ok(ct)
 }
 
-pub fn decrypt(
-    alg: &str,
-    key: Vec<u8>,
-    ct: Vec<u8>,
-    flags: u32,
-    access: u32,
-) -> KcapiResult<Vec<u8>> {
-    let mut handle = KcapiAKCipher::new(alg, flags)?;
+pub fn decrypt(alg: &str, key: Vec<u8>, ct: Vec<u8>) -> KcapiResult<Vec<u8>> {
+    let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setprivkey(key)?;
-    let pt = handle.decrypt(ct, access)?;
+    let pt = handle.decrypt(ct, ACCESS_HEURISTIC)?;
     Ok(pt)
 }
 
-pub fn sign(
-    alg: &str,
-    key: Vec<u8>,
-    message: Vec<u8>,
-    flags: u32,
-    access: u32,
-) -> KcapiResult<Vec<u8>> {
-    let mut handle = KcapiAKCipher::new(alg, flags)?;
+pub fn sign(alg: &str, key: Vec<u8>, message: Vec<u8>) -> KcapiResult<Vec<u8>> {
+    let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setprivkey(key)?;
-    let sig = handle.sign(message, access)?;
+    let sig = handle.sign(message, ACCESS_HEURISTIC)?;
     Ok(sig)
 }
 
-pub fn verify(
-    alg: &str,
-    key: Vec<u8>,
-    message: Vec<u8>,
-    sig: Vec<u8>,
-    flags: u32,
-    access: u32,
-) -> KcapiResult<()> {
-    let mut handle = KcapiAKCipher::new(alg, flags)?;
+pub fn verify(alg: &str, key: Vec<u8>, message: Vec<u8>, sig: Vec<u8>) -> KcapiResult<()> {
+    let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setpubkey(key)?;
-    handle.verify(message, sig, access)?;
+    handle.verify(message, sig, ACCESS_HEURISTIC)?;
     Ok(())
 }
