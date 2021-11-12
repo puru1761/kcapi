@@ -45,7 +45,7 @@ pub struct KcapiAEADData {
 }
 
 impl KcapiAEADData {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let assocdata = Vec::new();
         let data = Vec::new();
         let tag = Vec::new();
@@ -76,20 +76,20 @@ impl KcapiAEADData {
         aead_data
     }
 
-    pub fn set_tag(&mut self, tag: Vec<u8>) {
+    pub(crate) fn set_tag(&mut self, tag: Vec<u8>) {
         self.tagsize = tag.len();
         self.tag = tag;
     }
 
-    pub fn set_tagsize(&mut self, tagsize: usize) {
+    pub(crate) fn set_tagsize(&mut self, tagsize: usize) {
         self.tagsize = tagsize;
     }
 
-    pub fn set_assocdata(&mut self, assocdata: Vec<u8>) {
+    pub(crate) fn set_assocdata(&mut self, assocdata: Vec<u8>) {
         self.assocdata = assocdata;
     }
 
-    pub fn set_data(&mut self, data: Vec<u8>) {
+    pub(crate) fn set_data(&mut self, data: Vec<u8>) {
         self.data = data;
     }
 
