@@ -36,11 +36,86 @@ use std::{convert::TryInto, ffi::CString};
 
 use crate::{KcapiError, KcapiResult};
 
-#[derive(Debug, Clone)]
-pub struct KcapiAEADOutput {
-    pub assocdata: Vec<u8>,
-    pub output: Vec<u8>,
-    pub tag: Vec<u8>,
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
+pub struct KcapiAEADData {
+    assocdata: Vec<u8>,
+    data: Vec<u8>,
+    tag: Vec<u8>,
+    tagsize: usize,
+}
+
+impl KcapiAEADData {
+    pub fn new() -> Self {
+        let assocdata = Vec::new();
+        let data = Vec::new();
+        let tag = Vec::new();
+        let tagsize = 0;
+        KcapiAEADData {
+            assocdata,
+            data,
+            tag,
+            tagsize,
+        }
+    }
+
+    pub fn new_enc(pt: Vec<u8>, assocdata: Vec<u8>, tagsize: usize) -> Self {
+        let mut aead_data = Self::new();
+        aead_data.set_data(pt);
+        aead_data.set_assocdata(assocdata);
+        aead_data.set_tagsize(tagsize);
+
+        aead_data
+    }
+
+    pub fn new_dec(ct: Vec<u8>, assocdata: Vec<u8>, tag: Vec<u8>) -> Self {
+        let mut aead_data = Self::new();
+        aead_data.set_data(ct);
+        aead_data.set_assocdata(assocdata);
+        aead_data.set_tag(tag);
+
+        aead_data
+    }
+
+    pub fn set_tag(&mut self, tag: Vec<u8>) {
+        self.tagsize = tag.len();
+        self.tag = tag;
+    }
+
+    pub fn set_tagsize(&mut self, tagsize: usize) {
+        self.tagsize = tagsize;
+    }
+
+    pub fn set_assocdata(&mut self, assocdata: Vec<u8>) {
+        self.assocdata = assocdata;
+    }
+
+    pub fn set_data(&mut self, data: Vec<u8>) {
+        self.data = data;
+    }
+
+    pub fn get_assocdata(&self) -> Vec<u8> {
+        self.assocdata.clone()
+    }
+
+    pub fn get_data(&self) -> Vec<u8> {
+        self.data.clone()
+    }
+
+    pub fn get_tag(&self) -> Vec<u8> {
+        self.tag.clone()
+    }
+
+    pub fn assoclen(&self) -> usize {
+        self.assocdata.len()
+    }
+
+    pub fn datalen(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn taglen(&self) -> usize {
+        self.tagsize
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -52,17 +127,14 @@ pub enum KcapiAEADMode {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct KcapiAEAD {
     handle: *mut kcapi_sys::kcapi_handle,
-    assocdata: Vec<u8>,
     iv: Vec<u8>,
     key: Vec<u8>,
-    tag: Vec<u8>,
     mode: KcapiAEADMode,
+    data: KcapiAEADData,
     pub algorithm: String,
-    pub assocsize: usize,
     pub blocksize: usize,
     pub flags: u32,
     pub ivsize: usize,
-    pub tagsize: usize,
     pub max_tagsize: usize,
     pub inbuflen: usize,
     pub outbuflen: usize,
@@ -125,17 +197,14 @@ impl KcapiAEAD {
 
         Ok(KcapiAEAD {
             handle,
-            assocdata: Vec::new(),
             iv: Vec::new(),
             key: Vec::new(),
-            tag: Vec::new(),
             mode: KcapiAEADMode::Decrypt,
+            data: KcapiAEADData::new(),
             algorithm: algorithm.to_string(),
-            assocsize: 0,
             blocksize,
             flags,
             ivsize,
-            tagsize: 0,
             max_tagsize,
             inbuflen: 0,
             outbuflen: 0,
@@ -157,16 +226,7 @@ impl KcapiAEAD {
     }
 
     fn set_inbufsize(&mut self, inlen: usize) -> KcapiResult<()> {
-        if self.assocsize == 0 {
-            return Err(KcapiError {
-                code: -libc::EINVAL as i64,
-                message: format!(
-                    "Associated data size not set for algorithm '{}'",
-                    self.algorithm,
-                ),
-            });
-        }
-        if self.tagsize == 0 {
+        if self.data.taglen() == 0 {
             return Err(KcapiError {
                 code: -libc::EINVAL as i64,
                 message: format!("Tag size not set for algorithm '{}'", self.algorithm,),
@@ -181,8 +241,8 @@ impl KcapiAEAD {
             self.inbuflen = get_inbuflen(
                 self.handle,
                 inlen as kcapi_sys::size_t,
-                self.assocsize as kcapi_sys::size_t,
-                self.tagsize as kcapi_sys::size_t,
+                self.data.assoclen() as kcapi_sys::size_t,
+                self.data.taglen() as kcapi_sys::size_t,
             )
             .try_into()
             .expect("Failed to convert u64 into usize");
@@ -191,16 +251,7 @@ impl KcapiAEAD {
     }
 
     fn set_outbufsize(&mut self, outlen: usize) -> KcapiResult<()> {
-        if self.assocsize == 0 {
-            return Err(KcapiError {
-                code: -libc::EINVAL as i64,
-                message: format!(
-                    "Associated data size not set for algorithm '{}'",
-                    self.algorithm,
-                ),
-            });
-        }
-        if self.tagsize == 0 {
+        if self.data.taglen() == 0 {
             return Err(KcapiError {
                 code: -libc::EINVAL as i64,
                 message: format!("Tag size not set for algorithm '{}'", self.algorithm,),
@@ -215,8 +266,8 @@ impl KcapiAEAD {
             self.outbuflen = get_outbuflen(
                 self.handle,
                 outlen as kcapi_sys::size_t,
-                self.assocsize as kcapi_sys::size_t,
-                self.tagsize as kcapi_sys::size_t,
+                self.data.assocdata.len() as kcapi_sys::size_t,
+                self.data.tagsize as kcapi_sys::size_t,
             )
             .try_into()
             .expect("Failed to convert u64 into usize");
@@ -249,8 +300,7 @@ impl KcapiAEAD {
                 });
             }
         }
-        self.tagsize = tag.len();
-        self.tag = tag;
+        self.data.set_tag(tag);
         Ok(())
     }
 
@@ -277,17 +327,15 @@ impl KcapiAEAD {
                 });
             }
         }
-        self.tagsize = tagsize;
+        self.data.set_tagsize(tagsize);
         Ok(())
     }
 
     pub fn set_assocdata(&mut self, assocdata: Vec<u8>) {
-        let assocsize = assocdata.len();
         unsafe {
-            kcapi_sys::kcapi_aead_setassoclen(self.handle, assocsize as kcapi_sys::size_t);
+            kcapi_sys::kcapi_aead_setassoclen(self.handle, assocdata.len() as kcapi_sys::size_t);
         }
-        self.assocdata = assocdata;
-        self.assocsize = assocsize;
+        self.data.set_assocdata(assocdata);
     }
 
     fn check_aead_input(&self, iv: &[u8]) -> KcapiResult<()> {
@@ -300,20 +348,11 @@ impl KcapiAEAD {
                 ),
             });
         }
-        if self.assocdata.is_empty() {
+        if self.data.taglen() == 0 {
             return Err(KcapiError {
                 code: -libc::EINVAL as i64,
                 message: format!(
-                    "Associated data is not set for algorithm '{}'",
-                    self.algorithm,
-                ),
-            });
-        }
-        if self.tagsize == 0 && self.tag.is_empty() {
-            return Err(KcapiError {
-                code: -libc::EINVAL as i64,
-                message: format!(
-                    "Tag and Tag size is not set for algorithm '{}'",
+                    "Tag or Tag size is not set for algorithm '{}'",
                     self.algorithm,
                 ),
             });
@@ -332,12 +371,7 @@ impl KcapiAEAD {
         Ok(())
     }
 
-    pub fn encrypt(
-        &mut self,
-        pt: Vec<u8>,
-        iv: Vec<u8>,
-        access: u32,
-    ) -> KcapiResult<KcapiAEADOutput> {
+    pub fn encrypt(&mut self, pt: Vec<u8>, iv: Vec<u8>, access: u32) -> KcapiResult<KcapiAEADData> {
         self.mode = KcapiAEADMode::Encrypt;
         self.check_aead_input(&iv)?;
 
@@ -345,9 +379,9 @@ impl KcapiAEAD {
         self.set_outbufsize(pt.len())?;
 
         let mut outbuf = Vec::new();
-        outbuf.extend(self.assocdata.iter().copied());
+        outbuf.extend(self.data.get_assocdata().iter().copied());
         outbuf.extend(pt.iter().copied());
-        outbuf.extend(vec![0u8; self.tagsize].iter().copied());
+        outbuf.extend(vec![0u8; self.data.taglen()].iter().copied());
 
         unsafe {
             let ret = kcapi_sys::kcapi_aead_encrypt(
@@ -369,26 +403,23 @@ impl KcapiAEAD {
                 });
             }
         }
-        let ct_offset = self.assocsize;
-        let tag_offset = self.assocsize + pt.len();
+
+        let ct_offset = self.data.assoclen();
+        let tag_offset = ct_offset + pt.len();
+
         let mut ct = vec![0u8; pt.len()];
         ct.clone_from_slice(&outbuf[ct_offset..tag_offset]);
-        let mut tag = vec![0u8; self.tagsize];
+
+        let mut tag = vec![0u8; self.data.taglen()];
         tag.clone_from_slice(&outbuf[tag_offset..]);
 
-        Ok(KcapiAEADOutput {
-            output: ct,
-            tag,
-            assocdata: self.assocdata.clone(),
-        })
+        self.data.set_data(ct);
+        self.data.set_tag(tag);
+
+        Ok(self.data.clone())
     }
 
-    pub fn decrypt(
-        &mut self,
-        ct: Vec<u8>,
-        iv: Vec<u8>,
-        access: u32,
-    ) -> KcapiResult<KcapiAEADOutput> {
+    pub fn decrypt(&mut self, ct: Vec<u8>, iv: Vec<u8>, access: u32) -> KcapiResult<KcapiAEADData> {
         self.mode = KcapiAEADMode::Decrypt;
         self.check_aead_input(&iv)?;
 
@@ -396,9 +427,9 @@ impl KcapiAEAD {
         self.set_outbufsize(ct.len())?;
 
         let mut outbuf = Vec::new();
-        outbuf.extend(self.assocdata.iter().copied());
+        outbuf.extend(self.data.get_assocdata().iter().copied());
         outbuf.extend(ct.iter().copied());
-        outbuf.extend(self.tag.iter().copied());
+        outbuf.extend(self.data.get_tag().iter().copied());
 
         unsafe {
             let ret = kcapi_sys::kcapi_aead_decrypt(
@@ -421,53 +452,45 @@ impl KcapiAEAD {
             }
         }
 
-        let ct_offset = self.assocsize;
-        let tag_offset = self.assocsize + ct.len();
+        let ct_offset = self.data.assoclen();
+        let tag_offset = ct_offset + ct.len();
         let mut pt = vec![0u8; ct.len()];
         pt.clone_from_slice(&outbuf[ct_offset..tag_offset]);
 
-        Ok(KcapiAEADOutput {
-            output: pt,
-            tag: self.tag.clone(),
-            assocdata: self.assocdata.clone(),
-        })
+        self.data.set_data(pt);
+
+        Ok(self.data.clone())
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn encrypt(
     alg: &str,
+    data: KcapiAEADData,
     key: Vec<u8>,
-    pt: Vec<u8>,
     iv: Vec<u8>,
-    assocdata: Vec<u8>,
-    tagsize: usize,
     access: u32,
     flags: u32,
-) -> KcapiResult<KcapiAEADOutput> {
+) -> KcapiResult<KcapiAEADData> {
     let mut cipher = KcapiAEAD::new(alg, flags)?;
-    cipher.set_tagsize(tagsize)?;
-    cipher.set_assocdata(assocdata);
+    cipher.set_tagsize(data.taglen())?;
+    cipher.set_assocdata(data.get_assocdata());
     cipher.setkey(key)?;
-    let output = cipher.encrypt(pt, iv, access)?;
+    let output = cipher.encrypt(data.get_data(), iv, access)?;
     Ok(output)
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn decrypt(
     alg: &str,
+    data: KcapiAEADData,
     key: Vec<u8>,
-    ct: Vec<u8>,
     iv: Vec<u8>,
-    assocdata: Vec<u8>,
-    tag: Vec<u8>,
     access: u32,
     flags: u32,
-) -> KcapiResult<KcapiAEADOutput> {
+) -> KcapiResult<KcapiAEADData> {
     let mut cipher = KcapiAEAD::new(alg, flags)?;
-    cipher.set_tag(tag)?;
-    cipher.set_assocdata(assocdata);
+    cipher.set_tag(data.get_tag())?;
+    cipher.set_assocdata(data.get_assocdata());
     cipher.setkey(key)?;
-    let output = cipher.decrypt(ct, iv, access)?;
+    let output = cipher.decrypt(data.get_data(), iv, access)?;
     Ok(output)
 }

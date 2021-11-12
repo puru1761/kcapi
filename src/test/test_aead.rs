@@ -34,7 +34,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::aead::KcapiAEADOutput;
+    use crate::aead::KcapiAEADData;
     use crate::ACCESS_HEURISTIC;
 
     #[test]
@@ -51,39 +51,30 @@ mod tests {
 
         let key = vec![0u8; 16];
         let iv = vec![0u8; 12];
+        let data = KcapiAEADData::new_enc(pt, assocdata, taglen);
 
-        let out_exp: KcapiAEADOutput = KcapiAEADOutput {
-            output: vec![
-                0x42, 0xc9, 0x9b, 0x8f, 0x21, 0xf7, 0xe2, 0xd3, 0xb2, 0x69, 0x83, 0xf8, 0x30, 0xf3,
-                0xbf, 0x39, 0xb6, 0xd4, 0xeb,
-            ],
-            tag: vec![
-                0x2, 0x3b, 0x86, 0x43, 0xae, 0x4, 0xb6, 0xce, 0xbd, 0x1c, 0x53, 0xe0, 0x53, 0xa5,
-                0x26, 0x70,
-            ],
-            assocdata: vec![
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00,
-            ],
-        };
+        let mut out_exp = KcapiAEADData::new();
+        out_exp.set_data(vec![
+            0x42, 0xc9, 0x9b, 0x8f, 0x21, 0xf7, 0xe2, 0xd3, 0xb2, 0x69, 0x83, 0xf8, 0x30, 0xf3,
+            0xbf, 0x39, 0xb6, 0xd4, 0xeb,
+        ]);
+        out_exp.set_tag(vec![
+            0x2, 0x3b, 0x86, 0x43, 0xae, 0x4, 0xb6, 0xce, 0xbd, 0x1c, 0x53, 0xe0, 0x53, 0xa5, 0x26,
+            0x70,
+        ]);
+        out_exp.set_assocdata(vec![
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ]);
 
-        let out = match crate::aead::encrypt(
-            "gcm(aes)",
-            key,
-            pt,
-            iv,
-            assocdata,
-            taglen,
-            ACCESS_HEURISTIC,
-            0,
-        ) {
+        let out = match crate::aead::encrypt("gcm(aes)", data, key, iv, ACCESS_HEURISTIC, 0) {
             Ok(ct) => ct,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        assert_eq!(out.output, out_exp.output);
-        assert_eq!(out.tag, out_exp.tag);
+        assert_eq!(out.get_data(), out_exp.get_data());
+        assert_eq!(out.get_tag(), out_exp.get_tag());
     }
 
     #[test]
@@ -103,39 +94,30 @@ mod tests {
 
         let key = vec![0u8; 16];
         let iv = vec![0u8; 12];
+        let data = KcapiAEADData::new_dec(ct, assocdata, tag);
 
-        let out_exp: KcapiAEADOutput = KcapiAEADOutput {
-            output: vec![
-                0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-                0x41, 0x41, 0x41, 0x41, 0x41,
-            ],
-            tag: vec![
-                0x2, 0x3b, 0x86, 0x43, 0xae, 0x4, 0xb6, 0xce, 0xbd, 0x1c, 0x53, 0xe0, 0x53, 0xa5,
-                0x26, 0x70,
-            ],
-            assocdata: vec![
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00,
-            ],
-        };
+        let mut out_exp = KcapiAEADData::new();
+        out_exp.set_data(vec![
+            0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+            0x41, 0x41, 0x41, 0x41, 0x41,
+        ]);
+        out_exp.set_tag(vec![
+            0x2, 0x3b, 0x86, 0x43, 0xae, 0x4, 0xb6, 0xce, 0xbd, 0x1c, 0x53, 0xe0, 0x53, 0xa5, 0x26,
+            0x70,
+        ]);
+        out_exp.set_assocdata(vec![
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ]);
 
-        let out = match crate::aead::decrypt(
-            "gcm(aes)",
-            key,
-            ct,
-            iv,
-            assocdata,
-            tag,
-            ACCESS_HEURISTIC,
-            0,
-        ) {
+        let out = match crate::aead::decrypt("gcm(aes)", data, key, iv, ACCESS_HEURISTIC, 0) {
             Ok(ct) => ct,
             Err(e) => {
                 panic!("{}", e);
             }
         };
-        assert_eq!(out.output, out_exp.output);
-        assert_eq!(out.tag, out_exp.tag);
+        assert_eq!(out.get_data(), out_exp.get_data());
+        assert_eq!(out.get_tag(), out_exp.get_tag());
     }
 
     #[test]
@@ -148,17 +130,9 @@ mod tests {
         let assocdata = vec![0u8; 16];
         let taglen: usize = 16;
         let iv = vec![0u8; 4];
+        let data = KcapiAEADData::new_enc(pt, assocdata, taglen);
 
-        match crate::aead::encrypt(
-            "gcm(aes)",
-            key,
-            pt,
-            iv,
-            assocdata,
-            taglen,
-            ACCESS_HEURISTIC,
-            0,
-        ) {
+        match crate::aead::encrypt("gcm(aes)", data, key, iv, ACCESS_HEURISTIC, 0) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid IV size"),
             Err(_e) => {}
         };
@@ -177,8 +151,9 @@ mod tests {
         let key = vec![0u8; 16];
         let assocdata = vec![0u8; 16];
         let iv = vec![0u8; 4];
+        let data = KcapiAEADData::new_dec(ct, assocdata, tag);
 
-        match crate::aead::decrypt("gcm(aes)", key, ct, iv, assocdata, tag, ACCESS_HEURISTIC, 0) {
+        match crate::aead::decrypt("gcm(aes)", data, key, iv, ACCESS_HEURISTIC, 0) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid IV size"),
             Err(_e) => {}
         };
@@ -194,17 +169,9 @@ mod tests {
         let assocdata = vec![0u8; 16];
         let taglen: usize = 17;
         let iv = vec![0u8; 12];
+        let data = KcapiAEADData::new_enc(pt, assocdata, taglen);
 
-        match crate::aead::encrypt(
-            "gcm(aes)",
-            key,
-            pt,
-            iv,
-            assocdata,
-            taglen,
-            ACCESS_HEURISTIC,
-            0,
-        ) {
+        match crate::aead::encrypt("gcm(aes)", data, key, iv, ACCESS_HEURISTIC, 0) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid tag size"),
             Err(_e) => {}
         };
@@ -223,8 +190,9 @@ mod tests {
         let key = vec![0u8; 16];
         let assocdata = vec![0u8; 16];
         let iv = vec![0u8; 12];
+        let data = KcapiAEADData::new_dec(ct, assocdata, tag);
 
-        match crate::aead::decrypt("gcm(aes)", key, ct, iv, assocdata, tag, ACCESS_HEURISTIC, 0) {
+        match crate::aead::decrypt("gcm(aes)", data, key, iv, ACCESS_HEURISTIC, 0) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid tag size"),
             Err(_e) => {}
         };
@@ -243,8 +211,9 @@ mod tests {
         let key = vec![0u8; 16];
         let assocdata = vec![0u8; 16];
         let iv = vec![0u8; 12];
+        let data = KcapiAEADData::new_dec(ct, assocdata, tag);
 
-        match crate::aead::decrypt("gcm(aes)", key, ct, iv, assocdata, tag, ACCESS_HEURISTIC, 0) {
+        match crate::aead::decrypt("gcm(aes)", data, key, iv, ACCESS_HEURISTIC, 0) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid tag"),
             Err(e) => {
                 assert_eq!(e.code, -libc::EBADMSG as i64);
