@@ -2,9 +2,15 @@
 name = "kcapi"
 version = "0.1.0"
 edition = "2018"
+license = "BSD-3-Clause"
+description = "Official high-level rust bindings for libkcapi"
+homepage = "https://github.com/puru1761/kcapi"
+repository = "https://github.com/puru1761/kcapi"
+readme = "README.md"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-kcapi-sys = { path = "kcapi-sys" }
+kcapi-sys = { version = "1.1.0", path = "kcapi-sys" }
 libc = "*"
