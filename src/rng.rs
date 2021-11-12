@@ -58,13 +58,13 @@ use crate::{KcapiError, KcapiResult, INIT_AIO};
 /// This type denotes a generic context for an RNG transform in the kernel.
 /// A new instance of this struct must be initialized in order to use it's APIs.
 ///
-/// # Panics
+/// ## Panics
 ///
 /// If the string provided to the `new()` method of this type cannot be converted
 /// into a valid `std::ffi::CString`, the initialization will panic with the message
 /// `Failed to create CString`.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// A new instance of this struct must be initialized prior to use:
 ///
@@ -86,7 +86,7 @@ pub struct KcapiRNG {
 
 impl KcapiRNG {
     ///
-    /// Initialize an RNG transform in the Linux Kernel
+    /// ## Initialize an RNG transform in the Linux Kernel
     ///
     /// This API provides the initialization of a new instance of `KcapiRNG` and
     /// makes the required connections to the Linux Kernel.
@@ -96,7 +96,7 @@ impl KcapiRNG {
     /// On success, an initialized instance of `KcapiRNG` is returned.
     /// On failure, a `KcapiError` is returned.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```
     /// use kcapi::rng::KcapiRNG;
@@ -137,7 +137,7 @@ impl KcapiRNG {
     }
 
     ///
-    /// Seed the Kernel RNG
+    /// ## Seed the Kernel RNG
     ///
     /// This function must be called to initialize the selected RNG.
     /// When the SP800-90A DRBG is used, this call causes the DRBG to seed itself
@@ -146,7 +146,7 @@ impl KcapiRNG {
     ///
     /// On failure, a `KcapiError` is returned.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```
     /// use kcapi::rng::KcapiRNG;
@@ -173,7 +173,7 @@ impl KcapiRNG {
     }
 
     ///
-    /// Generate a random number
+    /// ## Generate a random number
     ///
     /// This function is used to generate a random number of `count` bytes
     /// from an initialized and seeded RNG. The RNG must be seeded by calling
@@ -184,7 +184,7 @@ impl KcapiRNG {
     /// On success, returns a `Vec<u8>` of length `count` with the random data.
     /// On failure, returns a `KcapiError`.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```
     /// use kcapi::rng::KcapiRNG;
@@ -223,7 +223,7 @@ impl KcapiRNG {
 }
 
 ///
-/// Convenience function to generate random bytes
+/// ## Convenience function to generate random bytes
 ///
 /// This convenience function generates a `count` number of random bytes from
 /// the `stdrng` from `/proc/crypto`.
@@ -233,7 +233,7 @@ impl KcapiRNG {
 /// On success, returns a `Vec<u8>` of length `count` containing the random data.
 /// On failure, returns a `KcapiError`.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let random = kcapi::rng::get_bytes(1024)

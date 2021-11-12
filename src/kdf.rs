@@ -62,13 +62,13 @@ use crate::{KcapiError, KcapiResult, INIT_AIO};
 /// any of it's APIs. A hash algorithm from `/proc/crypto` must be provided as
 /// in order to create an instance of this struct using the `new()` method.
 ///
-/// # Panics
+/// ## Panics
 ///
 /// If the string provided to the `new()` method of this type cannot be converted
 /// into a valid `std::ffi::CString`, the initialization will panic with the message
 /// `Failed to allocate CString`.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// use kcapi::kdf::KcapiKDF;
@@ -90,7 +90,7 @@ pub struct KcapiKDF {
 
 impl KcapiKDF {
     ///
-    /// Initialize a the `KcapiKDF` type.
+    /// ## Initialize a the `KcapiKDF` type.
     ///
     /// This function initializes the `KcapiKDF` type for a hash algorithm from
     /// `/proc/crypto`. The name of the hash provided as the `algorithm` argument
@@ -99,7 +99,7 @@ impl KcapiKDF {
     /// On success, an initialized instance of the `KcapiKDF` type is returned.
     /// On failure, a `KcapiError` is returned.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```
     /// use kcapi::kdf::KcapiKDF;
@@ -148,7 +148,7 @@ impl KcapiKDF {
     }
 
     ///
-    /// Set the key for the `KcapiKDF` instance.
+    /// ## Set the key for the `KcapiKDF` instance.
     ///
     /// This function sets the key used in a keyed message digest algorithm for
     /// the KDF operation. A call to this function is only required if the
@@ -159,7 +159,7 @@ impl KcapiKDF {
     ///
     /// On failure, a `KcapiError` is returned.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```
     /// use kcapi::kdf::KcapiKDF;
@@ -187,7 +187,7 @@ impl KcapiKDF {
     }
 
     ///
-    /// Counter Mode Key Derivation Function
+    /// ## Counter Mode Key Derivation Function
     ///
     /// This function is an implementation of the KDF in counter mode according
     /// to SP800-108 section 5.1 as well as SP800-56A section 5.8.1
@@ -205,7 +205,7 @@ impl KcapiKDF {
     /// On success, a `Vec<u8>` of size `outsize` is returned.
     /// On failure, a `KcapiError` is returned.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```
     /// use kcapi::kdf::KcapiKDF;
@@ -248,7 +248,7 @@ impl KcapiKDF {
     }
 
     ///
-    /// Double Pipeline Mode Key Derivation Function
+    /// ## Double Pipeline Mode Key Derivation Function
     ///
     /// This function is an implementation of the KDF in double pipeline
     /// iteration mode according with counter to SP800-108 section 5.3.
@@ -260,7 +260,7 @@ impl KcapiKDF {
     /// On success, a `Vec<u8>` of size `outsize` is returned.
     /// On failure, a `KcapiError` is returned.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```
     /// use kcapi::kdf::KcapiKDF;
@@ -303,7 +303,7 @@ impl KcapiKDF {
     }
 
     ///
-    /// Feedback Mode Key Derivation Function
+    /// ## Feedback Mode Key Derivation Function
     ///
     /// This function is an implementation of the KDF in feedback mode with a
     /// non-NULL IV and with counter according to SP800-108 section 5.2. The IV
@@ -322,7 +322,7 @@ impl KcapiKDF {
     /// On success, a `Vec<u8>` of size `outsize` is returned.
     /// On failure, a `KcapiError` is returned.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```
     /// use kcapi::kdf::KcapiKDF;
@@ -377,7 +377,7 @@ impl KcapiKDF {
 }
 
 ///
-/// Extract-and-Expand HKDF (RFC5869)
+/// ## Extract-and-Expand HKDF (RFC5869)
 ///
 /// Perform the key-derivation function according to RFC5869. The input data is
 /// defined in sections 2.2 und 2.3 of RFC5869.
@@ -392,7 +392,7 @@ impl KcapiKDF {
 /// On success, a `Vec<u8>` of length `outsize` is returned with the generated key.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let ikm = vec![0u8; 16];
@@ -447,7 +447,7 @@ pub fn hkdf(
 }
 
 ///
-/// Password-based Key Derivation Function
+/// ## Password-based Key Derivation Function
 ///
 /// This function is an implementation of the PBKDF as defined in SP800-132.
 ///
@@ -461,7 +461,7 @@ pub fn hkdf(
 /// On success, a `Vec<u8>` of length `outsize` containing the key is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let password = "Password123!".as_bytes().to_vec();

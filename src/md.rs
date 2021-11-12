@@ -72,13 +72,13 @@ pub const SHA512_DIGESTSIZE: usize = SHA512_BITSIZE / BITS_PER_BYTE;
 /// This type denotes a generic context for a Hash transform.
 /// An instance of this struct must be initialized using the `new()` method prior to use.
 ///
-/// # Panics
+/// ## Panics
 ///
 /// If the string provided as input to the `new()` function cannot be converted into a
 /// `std::ffi::CString` type, the initialization will panic with the message
 /// `Failed to create CString`.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// Initializing a KcapiHash
 ///
@@ -103,7 +103,7 @@ pub struct KcapiHash {
 
 impl KcapiHash {
     ///
-    /// Initialize a `KcapiHash`
+    /// ## Initialize a `KcapiHash`
     ///
     /// This API initializes a (keyed) message digest by establishing a connection
     /// to the Linux Kernel. The algorithm to be used by the (keyed) message digest
@@ -113,7 +113,7 @@ impl KcapiHash {
     /// On success, it returns an instance of type `KcapiHash`.
     /// On failure, it returns a `KcapiError`.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```
     /// use kcapi::md::KcapiHash;
@@ -175,14 +175,14 @@ impl KcapiHash {
     }
 
     ///
-    /// Update the message digest (stream)
+    /// ## Update the message digest (stream)
     ///
     /// This API updates the KcapiHash context with an input data buffer.
     /// The input data must be a `Vec<u8>`.
     ///
     /// On failure, a `KcapiError` is returned.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// Call the update API on an initialized hash handle
     ///
@@ -216,7 +216,7 @@ impl KcapiHash {
     }
 
     ///
-    /// Finalize the message digest (stream)
+    /// ## Finalize the message digest (stream)
     ///
     /// This function outputs the final message digest after performing a hash operation.
     /// The input buffer must be a `Vec<u8>` of size less than `INT_MAX`.
@@ -224,7 +224,7 @@ impl KcapiHash {
     /// On Success, a `Vec<u8>` with length equal to the digestsize is returned.
     /// On Failure,  a `KcapiError` is returned.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// Finalize a message digest
     ///
@@ -263,14 +263,14 @@ impl KcapiHash {
     }
 
     ///
-    /// Set the key for the message digest
+    /// ## Set the key for the message digest
     ///
     /// This function is used primarily to set the key in keyed message digest operations.
     /// The key must be a `Vec<u8>` of size less than `INT_MAX`.
     ///
     /// On failure, a `KcapiError` is returned.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// Set the key for a message digest
     ///
@@ -300,7 +300,7 @@ impl KcapiHash {
     }
 
     ///
-    /// Calculate message digest on a buffer (one-shot)
+    /// ## Calculate message digest on a buffer (one-shot)
     ///
     /// With this one-shot function, the message digest for a buffer can be calculated.
     /// If a keyed message digest is to be calculated, then the `setkey()` function must
@@ -309,7 +309,7 @@ impl KcapiHash {
     /// On success, a `Vec<u8>` with length equal to the digestsize is returned.
     /// On failure, a `KcapiError` is returned.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// One shot message digest
     ///
@@ -355,7 +355,7 @@ impl KcapiHash {
 }
 
 ///
-/// Calculate message digest on a buffer (one-shot)
+/// ## Calculate message digest on a buffer (one-shot)
 ///
 /// With this one-shot function, the message digest for a buffer can be calculated.
 /// The input buffer must be a `Vec<u8>` of size less than `INT_MAX`.
@@ -363,7 +363,7 @@ impl KcapiHash {
 /// On success, a `Vec<u8>` with length equal to the digestsize is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// One shot message digest
 ///
@@ -381,7 +381,7 @@ pub fn digest(alg: &str, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
 }
 
 ///
-/// Calculate a keyed message digest on a buffer (one-shot)
+/// ## Calculate a keyed message digest on a buffer (one-shot)
 ///
 /// With this one-shot function, a keyed message digest for a buffer can be calculated.
 /// The input buffer must be a `Vec<u8>` of size less than `INT_MAX`.
@@ -390,7 +390,7 @@ pub fn digest(alg: &str, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
 /// On success, a `Vec<u8>` with length equal to the digestsize is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let key = vec![0x41u8; 16];
@@ -408,7 +408,7 @@ pub fn keyed_digest(alg: &str, key: Vec<u8>, input: Vec<u8>) -> KcapiResult<Vec<
 }
 
 ///
-/// Calculate a SHA-1 message digest on an input buffer
+/// ## Calculate a SHA-1 message digest on an input buffer
 ///
 /// With this one-shot convenience function the SHA-1 message digest of an
 /// input buffer can be obtained.
@@ -417,7 +417,7 @@ pub fn keyed_digest(alg: &str, key: Vec<u8>, input: Vec<u8>) -> KcapiResult<Vec<
 /// On success, a `[u8; SHA1_DIGESTSIZE]` is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let digest = kcapi::md::sha1("Hello, World!".as_bytes().to_vec());
@@ -447,7 +447,7 @@ pub fn sha1(input: Vec<u8>) -> KcapiResult<[u8; SHA1_DIGESTSIZE]> {
 }
 
 ///
-/// Calculate a SHA-224 message digest on an input buffer
+/// ## Calculate a SHA-224 message digest on an input buffer
 ///
 /// With this one-shot convenience function the SHA-224 message digest of an
 /// input buffer can be obtained.
@@ -456,7 +456,7 @@ pub fn sha1(input: Vec<u8>) -> KcapiResult<[u8; SHA1_DIGESTSIZE]> {
 /// On success, a `[u8; SHA224_DIGESTSIZE]` is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let digest = kcapi::md::sha224("Hello, World!".as_bytes().to_vec());
@@ -486,7 +486,7 @@ pub fn sha224(input: Vec<u8>) -> KcapiResult<[u8; SHA224_DIGESTSIZE]> {
 }
 
 ///
-/// Calculate a SHA-256 message digest on an input buffer
+/// ## Calculate a SHA-256 message digest on an input buffer
 ///
 /// With this one-shot convenience function the SHA-256 message digest of an
 /// input buffer can be obtained.
@@ -495,7 +495,7 @@ pub fn sha224(input: Vec<u8>) -> KcapiResult<[u8; SHA224_DIGESTSIZE]> {
 /// On success, a `[u8; SHA256_DIGESTSIZE]` is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let digest = kcapi::md::sha256("Hello, World!".as_bytes().to_vec());
@@ -525,7 +525,7 @@ pub fn sha256(input: Vec<u8>) -> KcapiResult<[u8; SHA256_DIGESTSIZE]> {
 }
 
 ///
-/// Calculate a SHA-384 message digest on an input buffer
+/// ## Calculate a SHA-384 message digest on an input buffer
 ///
 /// With this one-shot convenience function the SHA-384 message digest of an
 /// input buffer can be obtained.
@@ -534,7 +534,7 @@ pub fn sha256(input: Vec<u8>) -> KcapiResult<[u8; SHA256_DIGESTSIZE]> {
 /// On success, a `[u8; SHA384_DIGESTSIZE]` is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let digest = kcapi::md::sha384("Hello, World!".as_bytes().to_vec());
@@ -564,7 +564,7 @@ pub fn sha384(input: Vec<u8>) -> KcapiResult<[u8; SHA384_DIGESTSIZE]> {
 }
 
 ///
-/// Calculate a SHA-512 message digest on an input buffer
+/// ## Calculate a SHA-512 message digest on an input buffer
 ///
 /// With this one-shot convenience function the SHA-512 message digest of an
 /// input buffer can be obtained.
@@ -573,7 +573,7 @@ pub fn sha384(input: Vec<u8>) -> KcapiResult<[u8; SHA384_DIGESTSIZE]> {
 /// On success, a `[u8; SHA512_DIGESTSIZE]` is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let digest = kcapi::md::sha512("Hello, World!".as_bytes().to_vec());
@@ -603,7 +603,7 @@ pub fn sha512(input: Vec<u8>) -> KcapiResult<[u8; SHA512_DIGESTSIZE]> {
 }
 
 ///
-/// Calculate HMAC SHA-1 keyed message digest on an input buffer
+/// ## Calculate HMAC SHA-1 keyed message digest on an input buffer
 ///
 /// With this one-shot convenience function, the HMAC SHA-1 keyed message digest
 /// of an input buffer can be obtained.
@@ -613,7 +613,7 @@ pub fn sha512(input: Vec<u8>) -> KcapiResult<[u8; SHA512_DIGESTSIZE]> {
 /// On success a `[u8; SHA1_DIGESTSIZE]` is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let key = vec![0xffu8; 16];
@@ -646,7 +646,7 @@ pub fn hmac_sha1(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA1_DIGESTSI
 }
 
 ///
-/// Calculate HMAC SHA-224 keyed message digest on an input buffer
+/// ## Calculate HMAC SHA-224 keyed message digest on an input buffer
 ///
 /// With this one-shot convenience function, the HMAC SHA-224 keyed message digest
 /// of an input buffer can be obtained.
@@ -656,7 +656,7 @@ pub fn hmac_sha1(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA1_DIGESTSI
 /// On success a `[u8; SHA224_DIGESTSIZE]` is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let key = vec![0xffu8; 16];
@@ -689,7 +689,7 @@ pub fn hmac_sha224(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA224_DIGE
 }
 
 ///
-/// Calculate HMAC SHA-256 keyed message digest on an input buffer
+/// ## Calculate HMAC SHA-256 keyed message digest on an input buffer
 ///
 /// With this one-shot convenience function, the HMAC SHA-256 keyed message digest
 /// of an input buffer can be obtained.
@@ -699,7 +699,7 @@ pub fn hmac_sha224(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA224_DIGE
 /// On success a `[u8; SHA256_DIGESTSIZE]` is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let key = vec![0xffu8; 16];
@@ -732,7 +732,7 @@ pub fn hmac_sha256(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA256_DIGE
 }
 
 ///
-/// Calculate HMAC SHA-384 keyed message digest on an input buffer
+/// ## Calculate HMAC SHA-384 keyed message digest on an input buffer
 ///
 /// With this one-shot convenience function, the HMAC SHA-384 keyed message digest
 /// of an input buffer can be obtained.
@@ -742,7 +742,7 @@ pub fn hmac_sha256(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA256_DIGE
 /// On success a `[u8; SHA384_DIGESTSIZE]` is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let key = vec![0xffu8; 16];
@@ -775,7 +775,7 @@ pub fn hmac_sha384(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA384_DIGE
 }
 
 ///
-/// Calculate HMAC SHA-512 keyed message digest on an input buffer
+/// ## Calculate HMAC SHA-512 keyed message digest on an input buffer
 ///
 /// With this one-shot convenience function, the HMAC SHA-512 keyed message digest
 /// of an input buffer can be obtained.
@@ -785,7 +785,7 @@ pub fn hmac_sha384(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA384_DIGE
 /// On success a `[u8; SHA512_DIGESTSIZE]` is returned.
 /// On failure, a `KcapiError` is returned.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// let key = vec![0xffu8; 16];
