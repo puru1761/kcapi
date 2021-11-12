@@ -2,6 +2,7 @@
 
 ![CI Badge](https://github.com/puru1761/kcapi/actions/workflows/main.yml/badge.svg)
 ![License](https://img.shields.io/github/license/puru1761/kcapi)
+![Crate Badge](https://img.shields.io/crates/v/kcapi.svg)
 
 This repository contains the rust sources for the official high-level rust
 bindings for `libkcapi` - A userspace interface to the Linux Kernel's
@@ -14,7 +15,7 @@ In order to include this crate in your dependencies, include it in your
 Cargo.toml as follows:
 
 ```
-kcapi = "0.1.0"
+kcapi = "*"
 ```
 
 Once this is done, you may access the various modules provided by this
@@ -37,7 +38,6 @@ fn main() {
     let digest = match kcapi::md::digest(
         "sha1"  // The algorithm to be used for the digest (from /proc/crypto)
         input,  // The input to be digested
-        0,      // The flags to set for cipher operation (Symmetric or AIO)
     ) {
         Ok(digest) => digest,
         Err(e) => panic!("{}", e),
@@ -60,6 +60,30 @@ struct KcapiError {
 ## Build and Test
 
 This section describes how the `kcapi` crate can be built and tested locally.
+
+### Kernel Configuration
+
+This crate requires the Linux Kernel to be compiled with the following options:
+
+* `CONFIG_CRYPTO_USER=m` - Compile the `af_alg.ko` module.
+* `CONFIG_CRYPTO_USER_API=y` - Enable Userland crypto API.
+* `CONFIG_CRYPTO_USER_API_HASH=y` - Enable the hash API.
+* `CONFIG_CRYPTO_USER_API_SKCIPHER=y` - Enable the Symmetric cipher API.
+* `CONFIG_CRYPTO_USER_API_RNG=y` - Enable the RNG API.
+* `CONFIG_CRYPTO_USER_API_AEAD=y` - Enable the AEAD API.
+
+If you wish to perform Cryptographic Algorithm Validation Program (CAVP)
+testing on the RNG, then you must also enable the following option.
+
+* `CONFIG_CRYPTO_USER_API_RNG_CAVP=y` - Enable RNG CAVP testing from userland.
+
+After the patches in the `kernel-patches` directory of this crate are applied,
+the following config option can also be enabled:
+
+* `CONFIG_CRYPTO_USER_API_AKCIPHER=y` - Enable the Asymmetric cipher API.
+
+Once these configuration options are enabled in the Linux Kernel, and the
+compilation succeeds, you may use this crate to it's full potential.
 
 ### Pre-requisites
 
@@ -90,7 +114,7 @@ sudo apt-get install autotools-dev autoconf llvm-dev
 
 If `LLVM_CONFIG_PATH` is not set, then set it with:
 
-```
+```shell
 export LLVM_CONFIG_PATH="/path/to/llvm-config"
 ```
 
