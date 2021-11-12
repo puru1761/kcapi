@@ -882,10 +882,6 @@ impl KcapiSKCipher {
 /// * `key` - The key to use for encryption of type `Vec<u8>`.
 /// * `pt` - The plaintext to be encrypted of type `Vec<u8>`.
 /// * `iv` - The IV used of type `Vec<u8>`.
-/// * `access` - Kernel access type (`u32`). This must be one of:
-///     - `ACCESS_HEURISTIC` - use internal heuristic for fastest kernel access
-///     - `ACCESS_VMSPLICE` - use vmsplice access
-///     - `ACCESS_SENDMSG` - sendmsg access
 ///
 /// On success, returns a `Vec<u8>` with the ciphertext.
 /// On failure, returns a `KcapiError`.
@@ -893,28 +889,20 @@ impl KcapiSKCipher {
 /// ## Examples
 ///
 /// ```
-/// use kcapi::ACCESS_HEURISTIC;
-///
 /// let pt = "Hello, World!".as_bytes().to_vec();
 /// let key = vec![0x00u8; 16];
 /// let iv = vec![0x00u8; 16];
 ///
-/// let ct = match kcapi::skcipher::encrypt("ctr(aes)", key, pt, iv, ACCESS_HEURISTIC) {
+/// let ct = match kcapi::skcipher::encrypt("ctr(aes)", key, pt, iv) {
 ///     Ok(ct) => ct,
 ///     Err(e) => panic!("{}", e),
 /// };
 /// ```
 ///
-pub fn encrypt(
-    alg: &str,
-    key: Vec<u8>,
-    pt: Vec<u8>,
-    iv: Vec<u8>,
-    access: u32,
-) -> KcapiResult<Vec<u8>> {
+pub fn encrypt(alg: &str, key: Vec<u8>, pt: Vec<u8>, iv: Vec<u8>) -> KcapiResult<Vec<u8>> {
     let mut cipher = KcapiSKCipher::new(alg, !INIT_AIO)?;
     cipher.setkey(key)?;
-    let ct = cipher.encrypt(pt, iv, access)?;
+    let ct = cipher.encrypt(pt, iv, crate::ACCESS_HEURISTIC)?;
 
     Ok(ct)
 }
@@ -932,10 +920,6 @@ pub fn encrypt(
 /// * `key` - A key of type `Vec<u8>`
 /// * `pt` - A list of plaintexts to be encrypted of type `Vec<Vec<u8>>`
 /// * `iv` - An IV of type `Vec<u8>`.
-/// * `access` - Kernel access type (`u32`). This must be one of:
-///     - `ACCESS_HEURISTIC` - use internal heuristic for fastest kernel access
-///     - `ACCESS_VMSPLICE` - use vmsplice access
-///     - `ACCESS_SENDMSG` - sendmsg access
 ///
 /// On success, returns a `Vec<Vec<u8>>` with the ciphertexts.
 /// On failure, returns a `KcapiError`
@@ -943,8 +927,6 @@ pub fn encrypt(
 /// ## Examples
 ///
 /// ```
-/// use kcapi::ACCESS_HEURISTIC;
-///
 /// let key = vec![0u8; 16];
 /// let pt = vec![
 ///     "This is a".as_bytes().to_vec(),
@@ -952,7 +934,7 @@ pub fn encrypt(
 ///     "To AIO Encrypt".as_bytes().to_vec(),
 /// ];
 /// let iv = vec![0u8; 16];
-/// let ct = match kcapi::skcipher::encrypt_aio("ctr(aes)", key, pt, iv, ACCESS_HEURISTIC) {
+/// let ct = match kcapi::skcipher::encrypt_aio("ctr(aes)", key, pt, iv) {
 ///     Ok(ct) => ct,
 ///     Err(e) => panic!("{}", e),
 /// };
@@ -963,11 +945,10 @@ pub fn encrypt_aio(
     key: Vec<u8>,
     pt: Vec<Vec<u8>>,
     iv: Vec<u8>,
-    access: u32,
 ) -> KcapiResult<Vec<Vec<u8>>> {
     let mut cipher = KcapiSKCipher::new(alg, INIT_AIO)?;
     cipher.setkey(key)?;
-    let ct = cipher.encrypt_aio(pt, iv, access)?;
+    let ct = cipher.encrypt_aio(pt, iv, crate::ACCESS_HEURISTIC)?;
 
     Ok(ct)
 }
@@ -985,10 +966,6 @@ pub fn encrypt_aio(
 /// * `key` - The key to use for decryption of type `Vec<u8>`.
 /// * `ct` - The ciphertext to be decrypted of type `Vec<u8>`.
 /// * `iv` - The IV used of type `Vec<u8>`.
-/// * `access` - Kernel access type (`u32`). This must be one of:
-///     - `ACCESS_HEURISTIC` - use internal heuristic for fastest kernel access
-///     - `ACCESS_VMSPLICE` - use vmsplice access
-///     - `ACCESS_SENDMSG` - sendmsg access
 ///
 /// On success, returns a `Vec<u8>` with the plaintext.
 /// On failure, returns a `KcapiError`.
@@ -996,28 +973,20 @@ pub fn encrypt_aio(
 /// ## Examples
 ///
 /// ```
-/// use kcapi::ACCESS_HEURISTIC;
-///
 /// let ct = vec![0x2e, 0x8c, 0x27, 0xb8, 0x80, 0xa6, 0xc, 0x6c, 0xe7, 0x3e, 0x96, 0x3d, 0xeb];
 /// let key = vec![0x00u8; 16];
 /// let iv = vec![0x00u8; 16];
 ///
-/// let pt = match kcapi::skcipher::decrypt("ctr(aes)", key, ct, iv, ACCESS_HEURISTIC) {
+/// let pt = match kcapi::skcipher::decrypt("ctr(aes)", key, ct, iv) {
 ///     Ok(pt) => pt,
 ///     Err(e) => panic!("{}", e),
 /// };
 /// ```
 ///
-pub fn decrypt(
-    alg: &str,
-    key: Vec<u8>,
-    ct: Vec<u8>,
-    iv: Vec<u8>,
-    access: u32,
-) -> KcapiResult<Vec<u8>> {
+pub fn decrypt(alg: &str, key: Vec<u8>, ct: Vec<u8>, iv: Vec<u8>) -> KcapiResult<Vec<u8>> {
     let mut cipher = KcapiSKCipher::new(alg, !INIT_AIO)?;
     cipher.setkey(key)?;
-    let pt = cipher.decrypt(ct, iv, access)?;
+    let pt = cipher.decrypt(ct, iv, crate::ACCESS_HEURISTIC)?;
 
     Ok(pt)
 }
@@ -1035,10 +1004,6 @@ pub fn decrypt(
 /// * `key` - A key of type `Vec<u8>`
 /// * `pt` - A list of ciphertexts to be decrypted of type `Vec<Vec<u8>>`
 /// * `iv` - An IV of type `Vec<u8>`.
-/// * `access` - Kernel access type (`u32`). This must be one of:
-///     - `ACCESS_HEURISTIC` - use internal heuristic for fastest kernel access
-///     - `ACCESS_VMSPLICE` - use vmsplice access
-///     - `ACCESS_SENDMSG` - sendmsg access
 ///
 /// On success, returns a `Vec<Vec<u8>>` with the plaintexts.
 /// On failure, returns a `KcapiError`.
@@ -1046,16 +1011,14 @@ pub fn decrypt(
 /// ## Examples
 ///
 /// ```
-/// use kcapi::ACCESS_HEURISTIC;
-///
 /// let key = vec![0u8; 16];
 /// let ct = vec![
 ///     "This is a".as_bytes().to_vec(),
-///     "plaintext".as_bytes().to_vec(),
-///     "To AIO Encrypt".as_bytes().to_vec(),
+///     "ciphertext".as_bytes().to_vec(),
+///     "To AIO Decrypt".as_bytes().to_vec(),
 /// ];
 /// let iv = vec![0u8; 16];
-/// let pt = match kcapi::skcipher::decrypt_aio("ctr(aes)", key, ct, iv, ACCESS_HEURISTIC) {
+/// let pt = match kcapi::skcipher::decrypt_aio("ctr(aes)", key, ct, iv) {
 ///     Ok(pt) => pt,
 ///     Err(e) => panic!("{}", e),
 /// };
@@ -1066,11 +1029,10 @@ pub fn decrypt_aio(
     key: Vec<u8>,
     ct: Vec<Vec<u8>>,
     iv: Vec<u8>,
-    access: u32,
 ) -> KcapiResult<Vec<Vec<u8>>> {
     let mut cipher = crate::skcipher::KcapiSKCipher::new(alg, INIT_AIO)?;
     cipher.setkey(key)?;
-    let pt = cipher.decrypt_aio(ct, iv, access)?;
+    let pt = cipher.decrypt_aio(ct, iv, crate::ACCESS_HEURISTIC)?;
 
     Ok(pt)
 }
