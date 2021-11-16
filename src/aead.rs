@@ -399,12 +399,6 @@ impl KcapiAEAD {
             ivsize = kcapi_sys::kcapi_aead_ivsize(handle)
                 .try_into()
                 .expect("Failed to convert u32 into usize");
-            if ivsize == 0 {
-                return Err(KcapiError {
-                    code: -libc::EINVAL as i64,
-                    message: format!("Failed to obtain ivsize for algorithm '{}'", algorithm,),
-                });
-            }
         }
 
         Ok(KcapiAEAD {

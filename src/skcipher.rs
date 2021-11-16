@@ -169,12 +169,6 @@ impl KcapiSKCipher {
             ivsize = kcapi_sys::kcapi_cipher_ivsize(handle)
                 .try_into()
                 .expect("Failed to convert u32 into usize");
-            if ivsize == 0 {
-                return Err(KcapiError {
-                    code: -libc::EINVAL as i64,
-                    message: format!("Failed to obtain IV size for algorithm '{}'", algorithm),
-                });
-            }
         }
 
         let key: Vec<u8> = Vec::new();
@@ -239,7 +233,7 @@ impl KcapiSKCipher {
                 message: format!("No key has been set for algorithm '{}'", self.algorithm,),
             });
         }
-        if iv.len() != self.ivsize || self.ivsize == 0 {
+        if iv.len() != self.ivsize {
             return Err(KcapiError {
                 code: -libc::EINVAL as i64,
                 message: format!("Invald IV Size for algorithm '{}'", self.algorithm),
