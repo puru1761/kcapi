@@ -398,6 +398,14 @@ impl KcapiAKCipher {
     }
 }
 
+impl Drop for KcapiAKCipher {
+    fn drop(&mut self) {
+        unsafe {
+            kcapi_sys::kcapi_akcipher_destroy(self.handle);
+        }
+    }
+}
+
 fn check_input(handle: &KcapiAKCipher, inp: Vec<u8>) -> KcapiResult<()> {
     if handle.privkey.is_empty() && handle.pubkey.is_empty() {
         return Err(KcapiError {

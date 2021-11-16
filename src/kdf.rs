@@ -376,6 +376,14 @@ impl KcapiKDF {
     }
 }
 
+impl Drop for KcapiKDF {
+    fn drop(&mut self) {
+        unsafe {
+            kcapi_sys::kcapi_md_destroy(self.handle);
+        }
+    }
+}
+
 ///
 /// ## Extract-and-Expand HKDF (RFC5869)
 ///

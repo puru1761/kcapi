@@ -869,6 +869,14 @@ impl KcapiSKCipher {
     }
 }
 
+impl Drop for KcapiSKCipher {
+    fn drop(&mut self) {
+        unsafe {
+            kcapi_sys::kcapi_cipher_destroy(self.handle);
+        }
+    }
+}
+
 ///
 /// ## One-shot convenience function for synchronous encyption
 ///

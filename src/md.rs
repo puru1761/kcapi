@@ -354,6 +354,14 @@ impl KcapiHash {
     }
 }
 
+impl Drop for KcapiHash {
+    fn drop(&mut self) {
+        unsafe {
+            kcapi_sys::kcapi_md_destroy(self.handle);
+        }
+    }
+}
+
 ///
 /// ## Calculate message digest on a buffer (one-shot)
 ///

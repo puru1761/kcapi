@@ -875,6 +875,14 @@ impl KcapiAEAD {
     }
 }
 
+impl Drop for KcapiAEAD {
+    fn drop(&mut self) {
+        unsafe {
+            kcapi_sys::kcapi_aead_destroy(self.handle);
+        }
+    }
+}
+
 ///
 /// ## Convenience Function for AEAD Encryption (synchronous one-shot)
 ///

@@ -222,6 +222,14 @@ impl KcapiRNG {
     }
 }
 
+impl Drop for KcapiRNG {
+    fn drop(&mut self) {
+        unsafe {
+            kcapi_sys::kcapi_rng_destroy(self.handle);
+        }
+    }
+}
+
 ///
 /// ## Convenience function to generate random bytes
 ///
