@@ -32,6 +32,28 @@
  *
  */
 
+//!
+//! # Generic Utilities
+//!
+//! This module provides generic utilities for convenience purposes.
+//!
+//! # Layout
+//!
+//! A number of public APIs are defined here.
+//!
+
+///
+/// ## Pad the IV upto `ivsize` bytes
+///
+/// This is a utility function used to pad the IV provided to symmetric key
+/// and AEAD ciphers such that unwanted errors do not occur.
+///
+/// This function takes:
+/// * `ivsize` - A known good size for the IV (`usize`).
+/// * `iv` - A `Vec<u8>` containing the IV to be padded.
+///
+/// This function returns an IV padded with `0x00`s up to `ivsize`.
+///
 pub fn pad_iv(ivsize: usize, iv: Vec<u8>) -> Vec<u8> {
     let mut newiv: Vec<u8>;
     newiv = vec![0u8; ivsize];
