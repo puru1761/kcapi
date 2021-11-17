@@ -110,6 +110,9 @@ impl KcapiHash {
     /// must be defined in `/proc/crypto` and must be provided as an argument to
     /// this function.
     ///
+    /// This function takes:
+    /// * `algorithm` - An `&str` name of the hash algorithm from `/proc/crypto`.
+    ///
     /// On success, it returns an instance of type `KcapiHash`.
     /// On failure, it returns a `KcapiError`.
     ///
@@ -179,6 +182,9 @@ impl KcapiHash {
     ///
     /// This API updates the KcapiHash context with an input data buffer.
     /// The input data must be a `Vec<u8>`.
+    ///
+    /// This function takes:
+    /// * `buffer` - A `Vec<u8>` containing the data to update the digest with.
     ///
     /// On failure, a `KcapiError` is returned.
     ///
@@ -268,6 +274,9 @@ impl KcapiHash {
     /// This function is used primarily to set the key in keyed message digest operations.
     /// The key must be a `Vec<u8>` of size less than `INT_MAX`.
     ///
+    /// This function takes:
+    /// * `key` - A `Vec<u8>` containing the key.
+    ///
     /// On failure, a `KcapiError` is returned.
     ///
     /// ## Examples
@@ -305,6 +314,9 @@ impl KcapiHash {
     /// With this one-shot function, the message digest for a buffer can be calculated.
     /// If a keyed message digest is to be calculated, then the `setkey()` function must
     /// also be called prior to calling `digest()`.
+    ///
+    /// This function takes:
+    /// * `input` - A `Vec<u8>` containing the input for the message digest
     ///
     /// On success, a `Vec<u8>` with length equal to the digestsize is returned.
     /// On failure, a `KcapiError` is returned.
@@ -368,6 +380,10 @@ impl Drop for KcapiHash {
 /// With this one-shot function, the message digest for a buffer can be calculated.
 /// The input buffer must be a `Vec<u8>` of size less than `INT_MAX`.
 ///
+/// This function takes:
+/// * `alg` - A `&str` name for the algorithm from `/proc/crypto`
+/// * `input`- A `Vec<u8>` containing the input to the message digest.
+///
 /// On success, a `Vec<u8>` with length equal to the digestsize is returned.
 /// On failure, a `KcapiError` is returned.
 ///
@@ -394,6 +410,11 @@ pub fn digest(alg: &str, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
 /// With this one-shot function, a keyed message digest for a buffer can be calculated.
 /// The input buffer must be a `Vec<u8>` of size less than `INT_MAX`.
 /// The input key must be a `Vec<u8>` of size less than `INT_MAX`.
+///
+/// This function takes:
+/// * `alg` - A `&str` name for the algorithm from `/proc/crypto`
+/// * `key` - A `Vec<u8>` containing the key.
+/// * `input`- A `Vec<u8>` containing the input to the message digest.
 ///
 /// On success, a `Vec<u8>` with length equal to the digestsize is returned.
 /// On failure, a `KcapiError` is returned.
