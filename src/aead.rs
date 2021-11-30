@@ -54,7 +54,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{KcapiError, KcapiResult};
+use crate::{skcipher::AES_BLOCKSIZE, KcapiError, KcapiResult};
 
 ///
 /// # The `KcapiAEADData` Type
@@ -875,6 +875,48 @@ impl Drop for KcapiAEAD {
             kcapi_sys::kcapi_aead_destroy(self.handle);
         }
     }
+}
+
+///
+/// ## convert CCM nonce into IV
+///
+/// This service function converts a CCM nonce value into an IV usable by the
+/// kernel crypto API.
+///
+/// This function takes:
+/// * nonce - A `Vec<u8>` containing the nonce with length < (AES_BLOCKSIZE - 2).
+///
+/// On success, returns a `Vec<u8>` containing the new IV.
+/// On failure, returns a `KcapiError`
+///
+/// ## Examples
+///
+/// ```
+/// let nonce = vec![0x41u8; 23];
+/// let iv = kcapi::aead::ccm_nonce_to_iv(nonce)
+///     .expect("Failed to convert AES-CCM nonce to IV");
+/// ```
+///
+pub fn ccm_nonce_to_iv(nonce: Vec<u8>) -> KcapiResult<Vec<u8>> {
+    if nonce.len() > (AES_BLOCKSIZE - 2) {
+        return Err(KcapiError {
+            code: -libc::EINVAL,
+            message: format!(
+                "Cannot pad nonce of length {} > {}",
+                nonce.len(),
+                (AES_BLOCKSIZE - 2),
+            ),
+        });
+    }
+    let padlen: u8 = (AES_BLOCKSIZE - 2 - nonce.len())
+        .try_into()
+        .expect("Failed to convert usize into u8");
+
+    let mut iv = vec![0u8; AES_BLOCKSIZE];
+    iv[1..1 + nonce.len()].clone_from_slice(nonce.as_slice());
+    iv[0] = padlen;
+
+    Ok(iv)
 }
 
 ///
