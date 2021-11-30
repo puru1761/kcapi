@@ -116,7 +116,7 @@ impl KcapiRNG {
             let ret = kcapi_sys::kcapi_rng_init(&mut handle as *mut _, alg.as_ptr(), !INIT_AIO);
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!(
                         "Failed to initialize RNG handle for algorithm '{}'",
                         algorithm,
@@ -164,7 +164,7 @@ impl KcapiRNG {
             let ret = kcapi_sys::kcapi_rng_seed(self.handle, data.as_mut_ptr(), data.len() as u32);
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!("Failed to seed RNG for algorithm '{}'", self.algorithm,),
                 });
             }
@@ -210,7 +210,7 @@ impl KcapiRNG {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!(
                         "Failed to generate random data for algorithm '{}'",
                         self.algorithm,
@@ -255,7 +255,7 @@ pub fn get_bytes(count: usize) -> KcapiResult<Vec<u8>> {
         let ret = kcapi_sys::kcapi_rng_get_bytes(out.as_mut_ptr(), count as kcapi_sys::size_t);
         if ret < 0 {
             return Err(KcapiError {
-                code: ret,
+                code: ret.try_into().expect("failed to convert i64 into i32"),
                 message: format!("Failed to obtain {} bytes from the stdrng", count),
             });
         }

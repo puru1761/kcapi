@@ -215,7 +215,7 @@ mod tests {
         match crate::aead::decrypt("gcm(aes)", data, key, iv) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid tag"),
             Err(e) => {
-                assert_eq!(e.code, -libc::EBADMSG as i64);
+                assert_eq!(e.code, -libc::EBADMSG);
             }
         };
     }
@@ -238,7 +238,7 @@ mod tests {
         match crate::aead::decrypt("gcm(aes)", data, key, iv) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid tag"),
             Err(e) => {
-                assert_eq!(e.code, -libc::EBADMSG as i64);
+                assert_eq!(e.code, -libc::EBADMSG);
             }
         };
     }
@@ -261,7 +261,7 @@ mod tests {
         match crate::aead::decrypt("gcm(aes)", data, key, iv) {
             Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid tag"),
             Err(e) => {
-                assert_eq!(e.code, -libc::EBADMSG as i64);
+                assert_eq!(e.code, -libc::EBADMSG);
             }
         };
     }

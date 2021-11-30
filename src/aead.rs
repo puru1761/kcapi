@@ -365,7 +365,7 @@ impl KcapiAEAD {
             let ret = kcapi_sys::kcapi_aead_init(&mut handle as *mut _, alg.as_ptr(), flags);
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!(
                         "Failed to initialize AEAD handle for algorithm '{}'",
                         algorithm,
@@ -378,7 +378,7 @@ impl KcapiAEAD {
                 .expect("Failed to convert u32 into usize");
             if max_tagsize == 0 {
                 return Err(KcapiError {
-                    code: -libc::EINVAL as i64,
+                    code: -libc::EINVAL,
                     message: format!(
                         "Failed to obtain max authsize for algorithm '{}'",
                         algorithm,
@@ -391,7 +391,7 @@ impl KcapiAEAD {
                 .expect("Failed to convert u32 into usize");
             if blocksize == 0 {
                 return Err(KcapiError {
-                    code: -libc::EINVAL as i64,
+                    code: -libc::EINVAL,
                     message: format!("Failed to obtain blocksize for algorithm '{}'", algorithm,),
                 });
             }
@@ -447,7 +447,7 @@ impl KcapiAEAD {
             let ret = kcapi_sys::kcapi_aead_setkey(self.handle, key.as_ptr(), key.len() as u32);
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!("Failed to set key for algorithm '{}'", self.algorithm,),
                 });
             }
@@ -459,7 +459,7 @@ impl KcapiAEAD {
     fn set_inbufsize(&mut self, inlen: usize) -> KcapiResult<()> {
         if self.data.taglen() == 0 {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!("Tag size not set for algorithm '{}'", self.algorithm,),
             });
         }
@@ -484,7 +484,7 @@ impl KcapiAEAD {
     fn set_outbufsize(&mut self, outlen: usize) -> KcapiResult<()> {
         if self.data.taglen() == 0 {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!("Tag size not set for algorithm '{}'", self.algorithm,),
             });
         }
@@ -537,7 +537,7 @@ impl KcapiAEAD {
     pub fn set_tag(&mut self, tag: Vec<u8>) -> KcapiResult<()> {
         if tag.len() > self.max_tagsize {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Invalid tagsize {} > {} for algorithm '{}'",
                     tag.len(),
@@ -551,7 +551,7 @@ impl KcapiAEAD {
             let ret = kcapi_sys::kcapi_aead_settaglen(self.handle, tag.len() as u32);
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!(
                         "Failed to set tag length for algorithm '{}'",
                         self.algorithm,
@@ -593,7 +593,7 @@ impl KcapiAEAD {
     pub fn set_tagsize(&mut self, tagsize: usize) -> KcapiResult<()> {
         if tagsize > self.max_tagsize {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Invalid tagsize {} > {} for algorithm '{}'",
                     tagsize, self.max_tagsize, self.algorithm,
@@ -605,7 +605,7 @@ impl KcapiAEAD {
             let ret = kcapi_sys::kcapi_aead_settaglen(self.handle, tagsize as u32);
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!(
                         "Failed to set tag length for algorithm '{}'",
                         self.algorithm,
@@ -648,7 +648,7 @@ impl KcapiAEAD {
     fn check_aead_input(&self, iv: &[u8]) -> KcapiResult<()> {
         if self.key.is_empty() {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Authenticated Encryption key is not set for algorithm '{}'",
                     self.algorithm,
@@ -657,7 +657,7 @@ impl KcapiAEAD {
         }
         if self.data.taglen() == 0 {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Tag or Tag size is not set for algorithm '{}'",
                     self.algorithm,
@@ -666,7 +666,7 @@ impl KcapiAEAD {
         }
         if iv.len() != self.ivsize {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Invalid IV of size {}, IV must be of size {} for algorithm '{}'",
                     iv.len(),
@@ -746,7 +746,7 @@ impl KcapiAEAD {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!(
                         "Authenticated Encryption failed for algorithm '{}'",
                         self.algorithm,
@@ -849,7 +849,7 @@ impl KcapiAEAD {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!(
                         "Authenticated decryption failed for algorithm '{}'",
                         self.algorithm,

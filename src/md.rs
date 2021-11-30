@@ -136,7 +136,7 @@ impl KcapiHash {
             let ret = kcapi_sys::kcapi_md_init(&mut handle as *mut _, alg.as_ptr(), !INIT_AIO);
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!(
                         "Failed to initialize hash handle for algorithm '{}'",
                         algorithm
@@ -148,7 +148,7 @@ impl KcapiHash {
                 .expect("Failed to convert u32 into usize");
             if digestsize == 0 {
                 return Err(KcapiError {
-                    code: -libc::EINVAL as i64,
+                    code: -libc::EINVAL,
                     message: format!(
                         "Failed to obtained digest size for algorithm '{}",
                         algorithm
@@ -161,7 +161,7 @@ impl KcapiHash {
                 .expect("Failed to convert u32 into usize");
             if blocksize == 0 {
                 return Err(KcapiError {
-                    code: -libc::EINVAL as i64,
+                    code: -libc::EINVAL,
                     message: format!("Failed to obtain block size for algorithm '{}'", algorithm),
                 });
             }
@@ -210,7 +210,7 @@ impl KcapiHash {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!(
                         "Failed to update message digest for algorithm '{}'",
                         self.algorithm
@@ -257,7 +257,7 @@ impl KcapiHash {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!(
                         "Failed to finalize digest for algorithm '{}'",
                         self.algorithm,
@@ -299,7 +299,7 @@ impl KcapiHash {
             let ret = kcapi_sys::kcapi_md_setkey(self.handle, key.as_ptr(), key.len() as u32);
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!("Failed to set key for algorithm '{}'", self.algorithm),
                 });
             }
@@ -338,7 +338,7 @@ impl KcapiHash {
     pub fn digest(&self, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
         if self.digestsize == 0 {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Failed to obtain valid blocksize for algorithm '{}'",
                     self.algorithm
@@ -357,7 +357,7 @@ impl KcapiHash {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!("Failed to obtain digest for algorithm '{}'", self.algorithm),
                 });
             }
@@ -467,7 +467,7 @@ pub fn sha1(input: Vec<u8>) -> KcapiResult<[u8; SHA1_DIGESTSIZE]> {
 
     if ret != SHA1_DIGESTSIZE as kcapi_sys::ssize_t {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed to generate message digest".to_string(),
         });
     }
@@ -506,7 +506,7 @@ pub fn sha224(input: Vec<u8>) -> KcapiResult<[u8; SHA224_DIGESTSIZE]> {
 
     if ret != SHA224_DIGESTSIZE as kcapi_sys::ssize_t {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed to generate message digest".to_string(),
         });
     }
@@ -545,7 +545,7 @@ pub fn sha256(input: Vec<u8>) -> KcapiResult<[u8; SHA256_DIGESTSIZE]> {
 
     if ret != SHA256_DIGESTSIZE as kcapi_sys::ssize_t {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed to generate message digest".to_string(),
         });
     }
@@ -584,7 +584,7 @@ pub fn sha384(input: Vec<u8>) -> KcapiResult<[u8; SHA384_DIGESTSIZE]> {
 
     if ret != SHA384_DIGESTSIZE as kcapi_sys::ssize_t {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed to generate message digest".to_string(),
         });
     }
@@ -623,7 +623,7 @@ pub fn sha512(input: Vec<u8>) -> KcapiResult<[u8; SHA512_DIGESTSIZE]> {
 
     if ret != SHA512_DIGESTSIZE as kcapi_sys::ssize_t {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed to generate message digest".to_string(),
         });
     }
@@ -666,7 +666,7 @@ pub fn hmac_sha1(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA1_DIGESTSI
 
     if ret != SHA1_DIGESTSIZE as kcapi_sys::ssize_t {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed to generate message hmac".to_string(),
         });
     }
@@ -709,7 +709,7 @@ pub fn hmac_sha224(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA224_DIGE
 
     if ret != SHA224_DIGESTSIZE as kcapi_sys::ssize_t {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed to generate message hmac".to_string(),
         });
     }
@@ -752,7 +752,7 @@ pub fn hmac_sha256(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA256_DIGE
 
     if ret != SHA256_DIGESTSIZE as kcapi_sys::ssize_t {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed to generate message hmac".to_string(),
         });
     }
@@ -795,7 +795,7 @@ pub fn hmac_sha384(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA384_DIGE
 
     if ret != SHA384_DIGESTSIZE as kcapi_sys::ssize_t {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed to generate message hmac".to_string(),
         });
     }
@@ -838,7 +838,7 @@ pub fn hmac_sha512(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA512_DIGE
 
     if ret != SHA512_DIGESTSIZE as kcapi_sys::ssize_t {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed to generate message hmac".to_string(),
         });
     }

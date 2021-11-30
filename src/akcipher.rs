@@ -119,7 +119,7 @@ impl KcapiAKCipher {
             let ret = kcapi_sys::kcapi_akcipher_init(&mut handle as *mut _, alg.as_ptr(), flags);
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!(
                         "Failed to initialize akcipher handle for algorithm '{}'",
                         algorithm
@@ -173,7 +173,7 @@ impl KcapiAKCipher {
 
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!(
                         "Failed to set private key for algorithm '{}'",
                         self.algorithm
@@ -216,7 +216,7 @@ impl KcapiAKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!(
                         "Failed to set public key for algorithm '{}'",
                         self.algorithm
@@ -262,7 +262,7 @@ impl KcapiAKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!("Failed to encrypt for algorithm '{}'", self.algorithm),
                 });
             }
@@ -303,7 +303,7 @@ impl KcapiAKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!("Failed to decrypt for algorithm '{}'", self.algorithm),
                 });
             }
@@ -342,7 +342,7 @@ impl KcapiAKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!("Failed to sign for algorithm '{}'", self.algorithm),
                 });
             }
@@ -386,7 +386,7 @@ impl KcapiAKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: -libc::EBADMSG as i64,
+                    code: -libc::EBADMSG,
                     message: format!(
                         "Failed to verify signature for algorithm '{}'",
                         self.algorithm
@@ -409,7 +409,7 @@ impl Drop for KcapiAKCipher {
 fn check_input(handle: &KcapiAKCipher, inp: Vec<u8>) -> KcapiResult<()> {
     if handle.privkey.is_empty() && handle.pubkey.is_empty() {
         return Err(KcapiError {
-            code: -libc::EINVAL as i64,
+            code: -libc::EINVAL,
             message: format!(
                 "Required asymmetric key is not set for algorithm '{}'",
                 handle.algorithm
@@ -418,7 +418,7 @@ fn check_input(handle: &KcapiAKCipher, inp: Vec<u8>) -> KcapiResult<()> {
     }
     if inp.len() > handle.modsize {
         return Err(KcapiError {
-            code: -libc::EINVAL as i64,
+            code: -libc::EINVAL,
             message: format!(
                 "Input to asymmetric cipher is larger than modulus size for algorithm {}",
                 handle.algorithm

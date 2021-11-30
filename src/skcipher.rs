@@ -148,7 +148,7 @@ impl KcapiSKCipher {
             let ret = kcapi_sys::kcapi_cipher_init(&mut handle as *mut _, alg.as_ptr(), flags);
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret.into(),
+                    code: ret,
                     message: format!(
                         "Failed to initialize symmetric key handle for algorithm '{}'",
                         algorithm
@@ -161,7 +161,7 @@ impl KcapiSKCipher {
                 .expect("Failed to convert u32 into usize");
             if blocksize == 0 {
                 return Err(KcapiError {
-                    code: -libc::EINVAL as i64,
+                    code: -libc::EINVAL,
                     message: format!("Failed to obtain block size for algorithm '{}'", algorithm),
                 });
             }
@@ -217,7 +217,7 @@ impl KcapiSKCipher {
             let ret = kcapi_sys::kcapi_cipher_setkey(self.handle, key.as_ptr(), key.len() as u32);
             if ret < 0 {
                 return Err(KcapiError {
-                    code: -libc::EINVAL as i64,
+                    code: -libc::EINVAL,
                     message: format!("Failed to set key for algorithm '{}'", self.algorithm),
                 });
             }
@@ -229,19 +229,19 @@ impl KcapiSKCipher {
     fn check_skcipher_input(&self, iv: &[u8], input: &[u8]) -> KcapiResult<()> {
         if self.key.is_empty() {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!("No key has been set for algorithm '{}'", self.algorithm,),
             });
         }
         if iv.len() != self.ivsize {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!("Invald IV Size for algorithm '{}'", self.algorithm),
             });
         }
         if input.len() % self.blocksize != 0 {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Input for algorithm {} should be a multiple of block size {}",
                     self.algorithm, self.blocksize,
@@ -306,7 +306,7 @@ impl KcapiSKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!("Encryption failed for algorithm '{}'", self.algorithm,),
                 });
             }
@@ -366,7 +366,7 @@ impl KcapiSKCipher {
     ) -> KcapiResult<Vec<Vec<u8>>> {
         if iv.len() != self.ivsize {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!("Invalid IV size for algorithm '{}'", self.algorithm),
             });
         }
@@ -385,7 +385,7 @@ impl KcapiSKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!("AIO Encryption failed for algorithm '{}'", self.algorithm),
                 });
             }
@@ -448,7 +448,7 @@ impl KcapiSKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!("Decryption failed for algorithm '{}'", self.algorithm,),
                 });
             }
@@ -511,7 +511,7 @@ impl KcapiSKCipher {
     ) -> KcapiResult<Vec<Vec<u8>>> {
         if iv.len() != self.ivsize {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!("Invalid IV size for algorithm '{}'", self.algorithm),
             });
         }
@@ -530,7 +530,7 @@ impl KcapiSKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!("AIO Decryption failed for algorithm '{}'", self.algorithm,),
                 });
             }
@@ -584,7 +584,7 @@ impl KcapiSKCipher {
 
         if iv.len() != cipher.ivsize {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Invalid IV of length {}, Expected IV of length {} for algorithm '{}'",
                     iv.len(),
@@ -598,7 +598,7 @@ impl KcapiSKCipher {
 
         if pt.is_empty() {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Invalid input vector of length 0 for algorithm '{}'",
                     cipher.algorithm,
@@ -616,7 +616,7 @@ impl KcapiSKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!(
                         "Failed to initialize stream cipher operation for algorithm '{}'",
                         algorithm,
@@ -674,7 +674,7 @@ impl KcapiSKCipher {
 
         if iv.len() != cipher.ivsize {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Invalid IV of length {}, Expected IV of length {} for algorithm '{}'",
                     iv.len(),
@@ -688,7 +688,7 @@ impl KcapiSKCipher {
 
         if ct.is_empty() {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Invalid input vector of length 0 for algorithm '{}'",
                     cipher.algorithm,
@@ -706,7 +706,7 @@ impl KcapiSKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!(
                         "Failed to initialize stream cipher operation for algorithm '{}'",
                         algorithm,
@@ -753,7 +753,7 @@ impl KcapiSKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!(
                         "Failed to update data stream for algorithm '{}'",
                         self.algorithm,
@@ -798,7 +798,7 @@ impl KcapiSKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!(
                         "Failed to update last data stream for algorithm '{}'",
                         self.algorithm,
@@ -850,7 +850,7 @@ impl KcapiSKCipher {
             );
             if ret < 0 {
                 return Err(KcapiError {
-                    code: ret,
+                    code: ret.try_into().expect("failed to convert i64 into i32"),
                     message: format!(
                         "Failed to obtain output stream for algorithm '{}'",
                         self.algorithm,
@@ -1042,7 +1042,7 @@ pub fn decrypt_aio(
 fn check_aes_input(key: &[u8], input: &[u8]) -> KcapiResult<()> {
     if input.len() % AES_BLOCKSIZE != 0 {
         return Err(KcapiError {
-            code: (-libc::EINVAL).into(),
+            code: -libc::EINVAL,
             message: format!(
                 "Input plaintext must be a multiple of {} bytes",
                 AES_BLOCKSIZE
@@ -1057,7 +1057,7 @@ fn check_aes_input(key: &[u8], input: &[u8]) -> KcapiResult<()> {
         AES256_KEYSIZE => {}
         _ => {
             return Err(KcapiError {
-                code: (-libc::EINVAL).into(),
+                code: -libc::EINVAL,
                 message: format!(
                     "Key must be {}, {}, or {} bytes long",
                     AES128_KEYSIZE, AES192_KEYSIZE, AES256_KEYSIZE
@@ -1127,7 +1127,7 @@ pub fn enc_aes_cbc(key: Vec<u8>, pt: Vec<u8>, iv: [u8; AES_BLOCKSIZE]) -> KcapiR
     }
     if ret < 0 {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed skcipher operation".to_string(),
         });
     }
@@ -1197,7 +1197,7 @@ pub fn dec_aes_cbc(key: Vec<u8>, ct: Vec<u8>, iv: [u8; AES_BLOCKSIZE]) -> KcapiR
     }
     if ret < 0 {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed skcipher operation".to_string(),
         });
     }
@@ -1263,7 +1263,7 @@ pub fn enc_aes_ctr(key: Vec<u8>, pt: Vec<u8>, ctr: [u8; AES_BLOCKSIZE]) -> Kcapi
     }
     if ret < 0 {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed skcipher operation".to_string(),
         });
     }
@@ -1332,7 +1332,7 @@ pub fn dec_aes_ctr(key: Vec<u8>, ct: Vec<u8>, ctr: [u8; AES_BLOCKSIZE]) -> Kcapi
     }
     if ret < 0 {
         return Err(KcapiError {
-            code: ret,
+            code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed skcipher operation".to_string(),
         });
     }

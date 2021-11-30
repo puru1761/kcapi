@@ -151,7 +151,7 @@ pub type KcapiResult<T> = std::result::Result<T, KcapiError>;
 ///
 #[derive(Debug, Clone)]
 pub struct KcapiError {
-    code: i64,
+    code: i32,
     message: String,
 }
 
@@ -225,7 +225,7 @@ impl IOVecTrait<Vec<u8>> for IOVec<Vec<u8>> {
     fn new(iov: Vec<Vec<u8>>) -> KcapiResult<Self> {
         if iov.is_empty() {
             return Err(KcapiError {
-                code: -libc::EINVAL as i64,
+                code: -libc::EINVAL,
                 message: format!(
                     "Cannot create an IOVec from a vector of length {}",
                     iov.len(),
