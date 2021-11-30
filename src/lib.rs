@@ -151,8 +151,8 @@ pub type KcapiResult<T> = std::result::Result<T, KcapiError>;
 ///
 #[derive(Debug, Clone)]
 pub struct KcapiError {
-    code: i32,
-    message: String,
+    pub code: i32,
+    pub message: String,
 }
 
 impl fmt::Display for KcapiError {
