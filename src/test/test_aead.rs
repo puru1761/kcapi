@@ -219,4 +219,50 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn test_decrypt_fail_invalid_ct() {
+        let ct = vec![
+            0x42, 0xc9, 0x9b, 0x8f, 0x21, 0xf7, 0xe2, 0xd3, 0xb2, 0x69, 0x83, 0xf8, 0x30, 0xf3,
+            0xbf, 0x39, 0xb6, 0xd4, 0xec,
+        ];
+        let tag = vec![
+            0x2, 0x3b, 0x86, 0x43, 0xae, 0x4, 0xb6, 0xce, 0xbd, 0x1c, 0x53, 0xe0, 0x53, 0xa5, 0x26,
+            0x70,
+        ];
+        let key = vec![0u8; 16];
+        let assocdata = vec![0u8; 16];
+        let iv = vec![0u8; 12];
+        let data = KcapiAEADData::new_dec(ct, assocdata, tag);
+
+        match crate::aead::decrypt("gcm(aes)", data, key, iv) {
+            Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid tag"),
+            Err(e) => {
+                assert_eq!(e.code, -libc::EBADMSG as i64);
+            }
+        };
+    }
+
+    #[test]
+    fn test_decrypt_fail_invalid_key() {
+        let ct = vec![
+            0x42, 0xc9, 0x9b, 0x8f, 0x21, 0xf7, 0xe2, 0xd3, 0xb2, 0x69, 0x83, 0xf8, 0x30, 0xf3,
+            0xbf, 0x39, 0xb6, 0xd4, 0xeb,
+        ];
+        let tag = vec![
+            0x2, 0x3b, 0x86, 0x43, 0xae, 0x4, 0xb6, 0xce, 0xbd, 0x1c, 0x53, 0xe0, 0x53, 0xa5, 0x26,
+            0x70,
+        ];
+        let key = vec![0x01u8; 16];
+        let assocdata = vec![0u8; 16];
+        let iv = vec![0u8; 12];
+        let data = KcapiAEADData::new_dec(ct, assocdata, tag);
+
+        match crate::aead::decrypt("gcm(aes)", data, key, iv) {
+            Ok(_output) => panic!("(BUG) cipher operation succeeded with invalid tag"),
+            Err(e) => {
+                assert_eq!(e.code, -libc::EBADMSG as i64);
+            }
+        };
+    }
 }
