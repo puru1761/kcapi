@@ -931,13 +931,13 @@ impl VMSplice for KcapiAEAD {
 }
 
 ///
-/// ## convert CCM nonce into IV
+/// ## Convert CCM nonce into IV
 ///
 /// This service function converts a CCM nonce value into an IV usable by the
 /// kernel crypto API.
 ///
 /// This function takes:
-/// * nonce - A `Vec<u8>` containing the nonce with length < (AES_BLOCKSIZE - 2).
+/// * nonce - A `Vec<u8>` containing the nonce with length `<= (AES_BLOCKSIZE - 2)`.
 ///
 /// On success, returns a `Vec<u8>` containing the new IV.
 /// On failure, returns a `KcapiError`
@@ -945,7 +945,7 @@ impl VMSplice for KcapiAEAD {
 /// ## Examples
 ///
 /// ```
-/// let nonce = vec![0x41u8; 23];
+/// let nonce = vec![0x41u8; 10];
 /// let iv = kcapi::aead::ccm_nonce_to_iv(nonce)
 ///     .expect("Failed to convert AES-CCM nonce to IV");
 /// ```
