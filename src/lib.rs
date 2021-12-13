@@ -331,6 +331,11 @@ impl IOVecTrait<Vec<u8>> for IOVec<Vec<u8>> {
     }
 }
 
+pub trait VMSplice {
+    fn get_max_splicesize(&self) -> usize;
+    fn set_max_splicesize(&self, size: usize) -> KcapiResult<()>;
+}
+
 pub mod util;
 
 pub mod aead;
