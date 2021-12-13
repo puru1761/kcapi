@@ -54,7 +54,7 @@
 
 use std::{convert::TryInto, ffi::CString};
 
-use crate::{skcipher::AES_BLOCKSIZE, KcapiError, KcapiResult};
+use crate::{skcipher::AES_BLOCKSIZE, KcapiError, KcapiResult, VMSplice};
 
 ///
 /// # The `KcapiAEADData` Type
@@ -874,6 +874,59 @@ impl Drop for KcapiAEAD {
         unsafe {
             kcapi_sys::kcapi_aead_destroy(self.handle);
         }
+    }
+}
+
+impl VMSplice for KcapiAEAD {
+    ///
+    /// ## Get Maximum buffer size of VMSPLICE Access
+    ///
+    /// This function returns the maximum number of bytes that can be handled
+    /// by a VMSPLICE call to the kernel.
+    ///
+    fn get_max_splicesize(&self) -> usize {
+        let size: usize;
+        unsafe {
+            size = kcapi_sys::kcapi_get_maxsplicesize(self.handle) as usize;
+        }
+        size
+    }
+
+    ///
+    /// ## Set Maximum Buffer Size for VMSPLICE Access
+    ///
+    /// When using vmsplice/splice to avoid copying of data into the kernel, the
+    /// kernel enforces a maximum number of bytes which can be spliced. If larger
+    /// data is to be processed, sendmsg will be used.
+    ///
+    /// Using this call, the buffer size can be increased.
+    ///
+    /// *NOTE:* Splice uses a pipe pair. Therefore, the maximum number of bytes
+    /// that can be stored with the pipe governs the maximum data size to be
+    /// spliced. Increasing the pipe buffer size is only allowed up to the maximum
+    /// specified with `/proc/sys/fs/pipe-max-size`.
+    ///
+    /// This function takes:
+    /// `size` - A `usize` denoting the size of the vmsplice buffer.
+    ///
+    /// On failure a `KcapiResult` is returned.
+    ///
+    fn set_max_splicesize(&self, size: usize) -> KcapiResult<()> {
+        unsafe {
+            let ret =
+                kcapi_sys::kcapi_set_maxsplicesize(self.handle, size as ::std::os::raw::c_uint);
+
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret,
+                    message: format!(
+                        "Unable to set max splice size {} for algorithm {}",
+                        size, self.algorithm,
+                    ),
+                });
+            }
+        }
+        Ok(())
     }
 }
 
