@@ -60,3 +60,23 @@ pub fn pad_iv(ivsize: usize, iv: Vec<u8>) -> Vec<u8> {
     newiv[..iv.len()].clone_from_slice(&iv);
     newiv
 }
+
+///
+/// ## Obtain the version of `libkcapi`
+///
+/// The function returns a version number that is monotonic increasing for newer
+/// versions. The version numbers are multiples of 100. For example, version 1.3.1
+/// is converted to 1030100 -- the last two digits are reserved for future use.
+///
+/// ## Examples
+///
+/// ```
+/// use kcapi::util::lib_version;
+///
+/// assert_eq!(lib_version(), 1030100);
+/// ```
+pub fn lib_version() -> u32 {
+    let version: u32;
+    unsafe { version = kcapi_sys::kcapi_version() }
+    version
+}
