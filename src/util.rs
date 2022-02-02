@@ -70,10 +70,10 @@ pub fn pad_iv(ivsize: usize, iv: Vec<u8>) -> Vec<u8> {
 ///
 /// ## Examples
 ///
-/// ```
+/// ```no_run
 /// use kcapi::util::lib_version;
 ///
-/// assert_eq!(lib_version(), 1030100);
+/// assert_eq!(lib_version(), 1050000);
 /// ```
 pub fn lib_version() -> u32 {
     let version: u32;
