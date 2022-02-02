@@ -137,6 +137,53 @@ impl KcapiRNG {
     }
 
     ///
+    /// ## Set the initial entropy of the RNG (CAVP)
+    ///
+    /// Note, this call must be called to initialize the selected RNG. When the
+    /// SP800-90A DRBG is used, this call causes the DRBG to seed itself from the
+    /// provided data.
+    ///
+    /// Note, in case of using the SP800-90A DRBG, the `CRYPTO_USER_API_RNG_CAVP`
+    /// kernel config knob must be set to `'y'` to use this API.
+    ///
+    /// A `Vec<u8>` must be provided as the initial entropy data.
+    ///
+    /// On failure a `KcapiError` is returned.
+    ///
+    /// ## Examples
+    ///
+    /// ```no_run
+    /// use kcapi::rng::KcapiRNG;
+    ///
+    /// let ent = vec![0x00u8, 16];
+    /// let mut rng = KcapiRNG::new("drbg_nopr_hmac_sha512")
+    ///     .expect("Failed to initialize RNG");
+    ///
+    /// rng.setentropy(ent)
+    ///     .expect("Failed to set initial entropy for RNG");
+    /// ```
+    ///
+    pub fn setentropy(&self, mut entropy: Vec<u8>) -> KcapiResult<()> {
+        unsafe {
+            let ret = kcapi_sys::kcapi_rng_setentropy(
+                self.handle,
+                entropy.as_mut_ptr(),
+                entropy.len() as u32,
+            );
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret,
+                    message: format!(
+                        "Failed to set RNG entropy for algorithm '{}'",
+                        self.algorithm
+                    ),
+                });
+            }
+        }
+        Ok(())
+    }
+
+    ///
     /// ## Seed the Kernel RNG
     ///
     /// This function must be called to initialize the selected RNG.
