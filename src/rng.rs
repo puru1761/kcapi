@@ -184,6 +184,60 @@ impl KcapiRNG {
     }
 
     ///
+    /// ## send additional data to the RNG (CAVP)
+    ///
+    /// Note, this call must be called immediately prior to calling
+    /// kcapi_rng_generate in order to send additional data to be consumed by
+    /// the RNG.
+    ///
+    /// Note, in case of using the SP800-90A DRBG, the CRYPTO_USER_API_RNG_CAVP
+    /// kernel config knob must be set to 'y' to use this API.
+    ///
+    /// A `Vec<u8>` must be provided as the additional data.
+    ///
+    /// On failure, a `KcapiError` is returned.
+    ///
+    /// ## Examples
+    ///
+    /// ```no_run
+    /// use kcapi::rng::KcapiRNG;
+    ///
+    /// let ent = vec![0x00u8, 16];
+    /// let mut rng = KcapiRNG::new("drbg_nopr_hmac_sha512")
+    ///     .expect("Failed to initialize RNG");
+    ///
+    /// rng.setentropy(ent)
+    ///     .expect("Failed to set initial entropy for RNG");
+    ///
+    /// let addtl = vec![0x00u8; 16];
+    /// rng.setaddtl(addtl)
+    ///     .expect("Failed to set additional data for RNG");
+    ///
+    /// let data = rng.generate(128)
+    ///     .expect("Failed to generate random");
+    /// assert_eq!(data.len(), 128);
+    /// ```
+    pub fn setaddtl(&self, mut entropy: Vec<u8>) -> KcapiResult<()> {
+        unsafe {
+            let ret = kcapi_sys::kcapi_rng_setaddtl(
+                self.handle,
+                entropy.as_mut_ptr(),
+                entropy.len() as u32,
+            );
+            if ret < 0 {
+                return Err(KcapiError {
+                    code: ret,
+                    message: format!(
+                        "Failed to set RNG entropy for algorithm '{}'",
+                        self.algorithm
+                    ),
+                });
+            }
+        }
+        Ok(())
+    }
+
+    ///
     /// ## Seed the Kernel RNG
     ///
     /// This function must be called to initialize the selected RNG.
