@@ -1,6 +1,6 @@
 [package]
 name = "kcapi"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2018"
 license = "BSD-3-Clause"
 description = "Official high-level rust bindings for libkcapi"
