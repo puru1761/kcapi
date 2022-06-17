@@ -1159,10 +1159,8 @@ fn check_aes_input(key: &[u8], input: &[u8]) -> KcapiResult<()> {
 /// ```
 ///
 pub fn enc_aes_cbc(key: Vec<u8>, pt: Vec<u8>, iv: [u8; AES_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
-    let mut ct: Vec<u8>;
-
     check_aes_input(&key, &pt)?;
-    ct = vec![0u8; pt.len()];
+    let mut ct = vec![0u8; pt.len()];
 
     let ret: kcapi_sys::ssize_t;
     unsafe {
@@ -1229,10 +1227,8 @@ pub fn enc_aes_cbc(key: Vec<u8>, pt: Vec<u8>, iv: [u8; AES_BLOCKSIZE]) -> KcapiR
 /// ```
 ///
 pub fn dec_aes_cbc(key: Vec<u8>, ct: Vec<u8>, iv: [u8; AES_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
-    let mut pt: Vec<u8>;
-
     check_aes_input(&key, &ct)?;
-    pt = vec![0u8; ct.len()];
+    let mut pt = vec![0u8; ct.len()];
 
     let ret: kcapi_sys::ssize_t;
     unsafe {
@@ -1295,10 +1291,8 @@ pub fn dec_aes_cbc(key: Vec<u8>, ct: Vec<u8>, iv: [u8; AES_BLOCKSIZE]) -> KcapiR
 /// ```
 ///
 pub fn enc_aes_ctr(key: Vec<u8>, pt: Vec<u8>, ctr: [u8; AES_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
-    let mut ct: Vec<u8>;
-
     check_aes_input(&key, &pt)?;
-    ct = vec![0u8; pt.len()];
+    let mut ct = vec![0u8; pt.len()];
 
     let ret: kcapi_sys::ssize_t;
     unsafe {
@@ -1364,10 +1358,8 @@ pub fn enc_aes_ctr(key: Vec<u8>, pt: Vec<u8>, ctr: [u8; AES_BLOCKSIZE]) -> Kcapi
 /// ```
 ///
 pub fn dec_aes_ctr(key: Vec<u8>, ct: Vec<u8>, ctr: [u8; AES_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
-    let mut pt: Vec<u8>;
-
     check_aes_input(&key, &ct)?;
-    pt = vec![0u8; ct.len()];
+    let mut pt = vec![0u8; ct.len()];
 
     let ret: kcapi_sys::ssize_t;
     unsafe {

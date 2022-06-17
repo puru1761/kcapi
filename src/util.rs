@@ -55,8 +55,7 @@
 /// This function returns an IV padded with `0x00`s up to `ivsize`.
 ///
 pub fn pad_iv(ivsize: usize, iv: Vec<u8>) -> Vec<u8> {
-    let mut newiv: Vec<u8>;
-    newiv = vec![0u8; ivsize];
+    let mut newiv = vec![0u8; ivsize];
     newiv[..iv.len()].clone_from_slice(&iv);
     newiv
 }
