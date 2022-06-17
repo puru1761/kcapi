@@ -33,6 +33,7 @@
  */
 
 mod test_aead;
+#[cfg(feature = "asym")]
 mod test_akcipher;
 mod test_kdf;
 mod test_md;

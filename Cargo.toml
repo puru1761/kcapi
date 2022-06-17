@@ -16,6 +16,7 @@ kcapi-sys = { version = "1.4.1", path = "kcapi-sys", default-features = false }
 libc = { version = "0.2.107" }
 
 [features]
-default = ["vendored-kcapi"]
+default = ["vendored-kcapi", "asym"]
 vendored-kcapi = ["kcapi-sys/vendored-kcapi"]
 local-kcapi = ["kcapi-sys/local-kcapi"]
+asym = []

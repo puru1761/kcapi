@@ -60,6 +60,12 @@
 //!
 //! Since the support to perform asymmetric cipher operations from userland is
 //! not present in the upstream Linux kernel, this module is still **EXPERIMENTAL**.
+//! This module is **only** available when the `asym` feature is enabled.
+//! This is because the `akcipher_*` APIs are available only when `libkcapi` is configured
+//! to have them.
+//!
+//! **WARNING**: Prior to using this API with the `local-kcapi` feature enabled,
+//! ensure that you have `lib-asym` configured for your `libkcapi` installation.
 //!
 
 use std::{convert::TryInto, ffi::CString};

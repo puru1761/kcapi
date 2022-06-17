@@ -339,6 +339,7 @@ pub trait VMSplice {
 pub mod util;
 
 pub mod aead;
+#[cfg(feature = "asym")]
 pub mod akcipher;
 pub mod kdf;
 pub mod md;
