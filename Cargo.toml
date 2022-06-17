@@ -12,5 +12,10 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-kcapi-sys = { version = "1.3.0", path = "kcapi-sys" }
+kcapi-sys = { version = "1.4.0", path = "kcapi-sys", default-features = false }
 libc = { version = "0.2.107" }
+
+[features]
+default = ["vendored-kcapi"]
+vendored-kcapi = ["kcapi-sys/vendored-kcapi"]
+local-kcapi = ["kcapi-sys/local-kcapi"]
