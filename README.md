@@ -11,11 +11,11 @@ crate which is a submodule of this crate.
 
 ## Usage
 
-In order to include this crate in your dependencies, include it in your
-Cargo.toml as follows:
+In order to include this crate in your dependencies, use `cargo` as
+follows:
 
-```
-kcapi = "*"
+```sh
+cargo add kcapi
 ```
 
 Once this is done, you may access the various modules provided by this
