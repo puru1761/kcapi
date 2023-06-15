@@ -1,8 +1,8 @@
 # KCAPI - The Official High-level Rust Bindings for libkcapi
 
-![CI Badge](https://github.com/puru1761/kcapi/actions/workflows/main.yml/badge.svg)
-![License](https://img.shields.io/github/license/puru1761/kcapi)
-![Crate Badge](https://img.shields.io/crates/v/kcapi.svg)
+[![CI Badge](https://github.com/puru1761/kcapi/actions/workflows/main.yml/badge.svg)](https://github.com/puru1761/kcapi/actions/workflows/main.yml)
+[![License](https://img.shields.io/github/license/puru1761/kcapi)](https://github.com/puru1761/kcapi/blob/master/LICENSE)
+[![Crate Badge](https://img.shields.io/crates/v/kcapi.svg)](https://crates.io/crates/kcapi)
 
 This repository contains the rust sources for the official high-level rust
 bindings for `libkcapi` - A userspace interface to the Linux Kernel's
