@@ -161,6 +161,8 @@ impl fmt::Display for KcapiError {
     }
 }
 
+impl std::error::Error for KcapiError {}
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 struct kcapi_handle {
