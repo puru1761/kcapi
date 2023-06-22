@@ -327,4 +327,26 @@ mod tests {
         };
         assert_eq!(hmac, HMAC_EXP);
     }
+
+    #[test]
+    fn test_md_send() {
+        use crate::md::KcapiHash;
+        let hash = KcapiHash::new("sha1").expect("Failed to initialize hash handle");
+
+        hash.update("Hello, World".as_bytes().to_vec())
+            .expect("Failed to update hash with input buffer");
+
+        std::thread::spawn(move || {
+            let digest = hash.finalize().expect("Failed to finalize message digest");
+            assert_eq!(
+                digest,
+                &[
+                    144, 125, 20, 251, 58, 242, 176, 212, 241, 140, 45, 70, 171, 232, 174, 220,
+                    225, 115, 103, 189
+                ]
+            );
+        })
+        .join()
+        .unwrap();
+    }
 }

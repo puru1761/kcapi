@@ -101,6 +101,8 @@ pub struct KcapiHash {
     pub digestsize: usize,
 }
 
+unsafe impl Send for KcapiHash {}
+
 impl KcapiHash {
     ///
     /// ## Initialize a `KcapiHash`
