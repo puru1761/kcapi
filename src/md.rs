@@ -92,7 +92,7 @@ pub const SHA512_DIGESTSIZE: usize = SHA512_BITSIZE / BITS_PER_BYTE;
 /// assert_eq!(hash.digestsize, SHA1_DIGESTSIZE);
 /// ```
 ///
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct KcapiHash {
     handle: *mut kcapi_sys::kcapi_handle,
     key: Vec<u8>,
