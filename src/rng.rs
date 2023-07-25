@@ -84,6 +84,8 @@ pub struct KcapiRNG {
     pub seedsize: usize,
 }
 
+unsafe impl Send for KcapiRNG {}
+
 impl KcapiRNG {
     ///
     /// ## Initialize an RNG transform in the Linux Kernel
