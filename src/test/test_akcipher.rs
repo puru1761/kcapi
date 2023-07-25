@@ -307,4 +307,32 @@ mod tests {
             Err(_e) => {}
         };
     }
+
+    #[test]
+    #[ignore]
+    fn test_akcipher_send() {
+        let mut handle = match KcapiAKCipher::new("pkcs1pad(rsa-generic,sha256)", 0) {
+            Ok(handle) => handle,
+            Err(e) => panic!("{}", e),
+        };
+
+        let digest = match crate::md::sha256(PT.to_vec()) {
+            Ok(digest) => digest,
+            Err(e) => panic!("{}", e),
+        };
+
+        match handle.setpubkey(PUBKEY.to_vec()) {
+            Ok(()) => {}
+            Err(e) => panic!("{}", e),
+        };
+
+        std::thread::spawn(move || {
+            match handle.verify(digest.to_vec(), SIG.to_vec(), crate::ACCESS_HEURISTIC) {
+                Ok(()) => {}
+                Err(e) => panic!("{}", e),
+            };
+        })
+        .join()
+        .unwrap();
+    }
 }

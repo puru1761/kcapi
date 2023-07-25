@@ -100,6 +100,8 @@ pub struct KcapiAKCipher {
     pub algorithm: String,
 }
 
+unsafe impl Send for KcapiAKCipher {}
+
 impl KcapiAKCipher {
     ///
     /// ## Initialize an instance of the `KcapiAKCipher` Type.
