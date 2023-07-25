@@ -113,6 +113,8 @@ pub struct KcapiSKCipher {
     stream_mode: SKCipherMode,
 }
 
+unsafe impl Send for KcapiSKCipher {}
+
 impl KcapiSKCipher {
     ///
     /// ## Initialize an instance of `KcapiSKCipher`
