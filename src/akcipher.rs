@@ -91,7 +91,7 @@ use crate::{KcapiError, KcapiResult, VMSplice, ACCESS_HEURISTIC, INIT_AIO};
 /// `std::ffi::CString` type, the initialization will panic with the message
 /// `Failed to create CString`.
 ///
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct KcapiAKCipher {
     handle: *mut kcapi_sys::kcapi_handle,
     pubkey: Vec<u8>,

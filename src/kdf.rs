@@ -79,7 +79,7 @@ use crate::{KcapiError, KcapiResult, INIT_AIO};
 /// };
 /// ```
 ///
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct KcapiKDF {
     digestsize: usize,
     handle: *mut kcapi_sys::kcapi_handle,

@@ -315,7 +315,7 @@ pub enum KcapiAEADMode {
 /// `std::ffi::CString` type, the initialization will panic with the message
 /// `Failed to create CString`.
 ///
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct KcapiAEAD {
     handle: *mut kcapi_sys::kcapi_handle,
     iv: Vec<u8>,
