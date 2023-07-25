@@ -218,13 +218,17 @@ impl KcapiKDF {
     ///     .expect("Failed to set key for CTR KDF");
     ///
     /// let inp = vec![0x01u8; 16];
+    /// let out = kdf.ctr_kdf(&inp, 16)
+    ///     .expect("Failed to perform CTR KDF");
+    ///
     /// let out = kdf.ctr_kdf(inp, 16)
     ///     .expect("Failed to perform CTR KDF");
     ///
     /// assert_eq!(out.len(), 16);
     /// ```
     ///
-    pub fn ctr_kdf(&self, input: Vec<u8>, outsize: usize) -> KcapiResult<Vec<u8>> {
+    pub fn ctr_kdf(&self, input: impl AsRef<[u8]>, outsize: usize) -> KcapiResult<Vec<u8>> {
+        let input = input.as_ref();
         let mut out = vec![0u8; outsize];
         unsafe {
             let ret = kcapi_sys::kcapi_kdf_ctr(
@@ -273,13 +277,17 @@ impl KcapiKDF {
     ///     .expect("Failed to set key for DPI KDF");
     ///
     /// let inp = vec![0x01u8; 16];
+    /// let out = kdf.dpi_kdf(&inp, 16)
+    ///     .expect("Failed to perform DPI KDF");
+    ///
     /// let out = kdf.dpi_kdf(inp, 16)
     ///     .expect("Failed to perform DPI KDF");
     ///
     /// assert_eq!(out.len(), 16);
     /// ```
     ///
-    pub fn dpi_kdf(&self, input: Vec<u8>, outsize: usize) -> KcapiResult<Vec<u8>> {
+    pub fn dpi_kdf(&self, input: impl AsRef<[u8]>, outsize: usize) -> KcapiResult<Vec<u8>> {
+        let input = input.as_ref();
         let mut out = vec![0u8; outsize];
         unsafe {
             let ret = kcapi_sys::kcapi_kdf_dpi(
@@ -335,13 +343,17 @@ impl KcapiKDF {
     ///     .expect("Failed to set key for FB KDF");
     ///
     /// let inp = vec![0x00u8; 20];
+    /// let out = kdf.fb_kdf(&inp, 16)
+    ///     .expect("Failed to perform FB KDF");
+    ///
     /// let out = kdf.fb_kdf(inp, 16)
     ///     .expect("Failed to perform FB KDF");
     ///
     /// assert_eq!(out.len(), 16);
     /// ```
     ///
-    pub fn fb_kdf(&self, input: Vec<u8>, outsize: usize) -> KcapiResult<Vec<u8>> {
+    pub fn fb_kdf(&self, input: impl AsRef<[u8]>, outsize: usize) -> KcapiResult<Vec<u8>> {
+        let input = input.as_ref();
         if input.len() < self.digestsize {
             return Err(KcapiError {
                 code: -libc::EINVAL,
@@ -408,6 +420,9 @@ impl Drop for KcapiKDF {
 /// let info = vec![0u8; 16];
 /// let outsize: usize = 32;
 ///
+/// let key = kcapi::kdf::hkdf("hmac(sha1)", &ikm, &salt, &info, outsize)
+///     .expect("Failed to perform HKDF");
+///
 /// let key = kcapi::kdf::hkdf("hmac(sha1)", ikm, salt, info, outsize)
 ///     .expect("Failed to perform HKDF");
 ///
@@ -415,11 +430,14 @@ impl Drop for KcapiKDF {
 /// ```
 pub fn hkdf(
     hashname: &str,
-    ikm: Vec<u8>,
-    salt: Vec<u8>,
-    info: Vec<u8>,
+    ikm: impl AsRef<[u8]>,
+    salt: impl AsRef<[u8]>,
+    info: impl AsRef<[u8]>,
     outsize: usize,
 ) -> KcapiResult<Vec<u8>> {
+    let ikm = ikm.as_ref();
+    let salt = salt.as_ref();
+    let info = info.as_ref();
     let mut out = vec![0u8; outsize];
     if ikm.is_empty() {
         return Err(KcapiError {
@@ -477,17 +495,22 @@ pub fn hkdf(
 /// let iterations = 32;
 /// let outsize = 32;
 ///
+/// let key = kcapi::kdf::pbkdf("hmac(sha256)", &password, &salt, iterations, outsize)
+///     .expect("Failed to perform PBKDF");
+///
 /// let key = kcapi::kdf::pbkdf("hmac(sha256)", password, salt, iterations, outsize)
 ///     .expect("Failed to perform PBKDF");
 /// ```
 ///
 pub fn pbkdf(
     hashname: &str,
-    password: Vec<u8>,
-    salt: Vec<u8>,
+    password: impl AsRef<[u8]>,
+    salt: impl AsRef<[u8]>,
     iterations: u32,
     outsize: usize,
 ) -> KcapiResult<Vec<u8>> {
+    let password = password.as_ref();
+    let salt = salt.as_ref();
     let mut out = vec![0u8; outsize];
     if password.is_empty() || salt.is_empty() {
         return Err(KcapiError {

@@ -253,8 +253,9 @@ impl KcapiAKCipher {
     /// On success, returns a `Vec<u8>` wih the encrypted ciphertext.
     /// On failure, returns `KcapiError`
     ///
-    pub fn encrypt(&self, pt: Vec<u8>, access: u32) -> KcapiResult<Vec<u8>> {
-        crate::akcipher::check_input(self, pt.clone())?;
+    pub fn encrypt(&self, pt: impl AsRef<[u8]>, access: u32) -> KcapiResult<Vec<u8>> {
+        let pt = pt.as_ref();
+        crate::akcipher::check_input(self, pt)?;
 
         let mut ct = vec![0u8; self.modsize];
         unsafe {
@@ -294,8 +295,9 @@ impl KcapiAKCipher {
     /// On success, returns a `Vec<u8>` wih the decrypted plaintext.
     /// On failure, returns `KcapiError`
     ///
-    pub fn decrypt(&self, ct: Vec<u8>, access: u32) -> KcapiResult<Vec<u8>> {
-        crate::akcipher::check_input(self, ct.clone())?;
+    pub fn decrypt(&self, ct: impl AsRef<[u8]>, access: u32) -> KcapiResult<Vec<u8>> {
+        let ct = ct.as_ref();
+        crate::akcipher::check_input(self, ct)?;
 
         let mut pt = vec![0u8; self.modsize];
         unsafe {
@@ -333,8 +335,9 @@ impl KcapiAKCipher {
     /// On success, returns a `Vec<u8>` wih the signature.
     /// On failure, returns `KcapiError`
     ///
-    pub fn sign(&self, message: Vec<u8>, access: u32) -> KcapiResult<Vec<u8>> {
-        crate::akcipher::check_input(self, message.clone())?;
+    pub fn sign(&self, message: impl AsRef<[u8]>, access: u32) -> KcapiResult<Vec<u8>> {
+        let message = message.as_ref();
+        crate::akcipher::check_input(self, message)?;
 
         let mut sig = vec![0u8; self.modsize];
         unsafe {
@@ -373,8 +376,15 @@ impl KcapiAKCipher {
     /// On failure to verify the signature, returns `KcapiError` with the `code`
     /// field set to `EBADMSG`.
     ///
-    pub fn verify(&self, message: Vec<u8>, sig: Vec<u8>, access: u32) -> KcapiResult<()> {
-        crate::akcipher::check_input(self, sig.clone())?;
+    pub fn verify(
+        &self,
+        message: impl AsRef<[u8]>,
+        sig: impl AsRef<[u8]>,
+        access: u32,
+    ) -> KcapiResult<()> {
+        let message = message.as_ref();
+        let sig = sig.as_ref();
+        crate::akcipher::check_input(self, sig)?;
 
         let mut inp = Vec::new();
         inp.extend(sig.iter().copied());
@@ -465,7 +475,8 @@ impl VMSplice for KcapiAKCipher {
     }
 }
 
-fn check_input(handle: &KcapiAKCipher, inp: Vec<u8>) -> KcapiResult<()> {
+fn check_input(handle: &KcapiAKCipher, inp: impl AsRef<[u8]>) -> KcapiResult<()> {
+    let inp = inp.as_ref();
     if handle.privkey.is_empty() && handle.pubkey.is_empty() {
         return Err(KcapiError {
             code: -libc::EINVAL,
@@ -511,7 +522,7 @@ fn check_input(handle: &KcapiAKCipher, inp: Vec<u8>) -> KcapiResult<()> {
 /// On success, returns a `Vec<u8>` wih the encrypted ciphertext.
 /// On failure, returns `KcapiError`
 ///
-pub fn encrypt(alg: &str, key: Vec<u8>, pt: Vec<u8>) -> KcapiResult<Vec<u8>> {
+pub fn encrypt(alg: &str, key: Vec<u8>, pt: impl AsRef<[u8]>) -> KcapiResult<Vec<u8>> {
     let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setpubkey(key)?;
     let ct = handle.encrypt(pt, ACCESS_HEURISTIC)?;
@@ -548,7 +559,7 @@ pub fn encrypt(alg: &str, key: Vec<u8>, pt: Vec<u8>) -> KcapiResult<Vec<u8>> {
 /// On success, returns a `Vec<u8>` wih the decrypted plaintext.
 /// On failure, returns `KcapiError`
 ///
-pub fn decrypt(alg: &str, key: Vec<u8>, ct: Vec<u8>) -> KcapiResult<Vec<u8>> {
+pub fn decrypt(alg: &str, key: Vec<u8>, ct: impl AsRef<[u8]>) -> KcapiResult<Vec<u8>> {
     let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setprivkey(key)?;
     let pt = handle.decrypt(ct, ACCESS_HEURISTIC)?;
@@ -583,7 +594,7 @@ pub fn decrypt(alg: &str, key: Vec<u8>, ct: Vec<u8>) -> KcapiResult<Vec<u8>> {
 /// On success, returns a `Vec<u8>` wih the signature.
 /// On failure, returns `KcapiError`
 ///
-pub fn sign(alg: &str, key: Vec<u8>, message: Vec<u8>) -> KcapiResult<Vec<u8>> {
+pub fn sign(alg: &str, key: Vec<u8>, message: impl AsRef<[u8]>) -> KcapiResult<Vec<u8>> {
     let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setprivkey(key)?;
     let sig = handle.sign(message, ACCESS_HEURISTIC)?;
@@ -613,7 +624,12 @@ pub fn sign(alg: &str, key: Vec<u8>, message: Vec<u8>) -> KcapiResult<Vec<u8>> {
 /// On failure to verify the signature, returns `KcapiError` with the `code`
 /// field set to `EBADMSG`.
 ///
-pub fn verify(alg: &str, key: Vec<u8>, message: Vec<u8>, sig: Vec<u8>) -> KcapiResult<()> {
+pub fn verify(
+    alg: &str,
+    key: Vec<u8>,
+    message: impl AsRef<[u8]>,
+    sig: impl AsRef<[u8]>,
+) -> KcapiResult<()> {
     let mut handle = KcapiAKCipher::new(alg, !INIT_AIO)?;
     handle.setpubkey(key)?;
     handle.verify(message, sig, ACCESS_HEURISTIC)?;
