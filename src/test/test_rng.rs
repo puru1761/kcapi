@@ -205,4 +205,36 @@ mod tests {
         assert_eq!(data.len(), 128);
         assert_eq!(data, exp);
     }
+
+    #[test]
+    fn test_rng_send() {
+        let rng = match crate::rng::KcapiRNG::new("drbg_nopr_hmac_sha512") {
+            Ok(rng) => rng,
+            Err(e) => panic!("{}", e),
+        };
+
+        match rng.seed(vec![0u8; 16]) {
+            Ok(()) => {}
+            Err(e) => panic!("{}", e),
+        };
+
+        let mut out_last = match rng.generate(RNG_GET_BYTECOUNT) {
+            Ok(buf) => buf,
+            Err(e) => panic!("{}", e),
+        };
+        std::thread::spawn(move || {
+            for _i in 0..RNG_GET_BYTECOUNT {
+                let out = match rng.generate(RNG_GET_BYTECOUNT) {
+                    Ok(buf) => buf,
+                    Err(e) => panic!("{}", e),
+                };
+                assert_eq!(out.len(), RNG_GET_BYTECOUNT);
+                assert_ne!(out, out_last);
+
+                out_last = out;
+            }
+        })
+        .join()
+        .unwrap();
+    }
 }

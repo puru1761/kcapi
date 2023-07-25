@@ -880,4 +880,41 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_sk_send() {
+        let key = vec![0u8; 16];
+        let iv = vec![0u8; 16];
+        let out_exp = vec![0x41u8; 16];
+        let mut cipher = match KcapiSKCipher::new_dec_stream(
+            "ctr(aes)",
+            key,
+            iv,
+            vec![vec![
+                0x27, 0xa8, 0xa, 0x95, 0xae, 0xcb, 0x6d, 0x7a, 0xc9, 0xd, 0xbb, 0x18, 0x8b, 0x75,
+                0x6a, 0x6f,
+            ]],
+        ) {
+            Ok(handle) => handle,
+            Err(e) => panic!("{}", e),
+        };
+        std::thread::spawn(move || {
+            match cipher.stream_update_last(vec![vec![
+                0x19, 0xa3, 0xbd, 0x8f, 0xbb, 0x3f, 0x71, 0x20, 0x77, 0x3e, 0x5c, 0x16, 0xe5, 0xa6,
+                0x4, 0x1b,
+            ]]) {
+                Ok(()) => {}
+                Err(e) => panic!("{}", e),
+            }
+            let mut out = match cipher.stream_op() {
+                Ok(out) => out,
+                Err(e) => panic!("{}", e),
+            };
+
+            let o = out.pop().expect("(BUG) Empty output from stream_op");
+            assert_eq!(o, out_exp);
+        })
+        .join()
+        .unwrap();
+    }
 }

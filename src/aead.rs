@@ -331,6 +331,8 @@ pub struct KcapiAEAD {
     pub outbuflen: usize,
 }
 
+unsafe impl Send for KcapiAEAD {}
+
 impl KcapiAEAD {
     ///
     /// ## Initialize an instance of `KcapiAEAD` type

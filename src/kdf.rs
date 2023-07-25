@@ -88,6 +88,8 @@ pub struct KcapiKDF {
     pub algorithm: String,
 }
 
+unsafe impl Send for KcapiKDF {}
+
 impl KcapiKDF {
     ///
     /// ## Initialize a the `KcapiKDF` type.
