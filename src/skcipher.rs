@@ -284,14 +284,27 @@ impl KcapiSKCipher {
     ///
     /// let iv = vec![0xffu8; cipher.ivsize];
     /// let pt = "Hello, World!".as_bytes().to_vec();
+    ///
+    /// let ct = match cipher.encrypt(&pt, &iv, ACCESS_HEURISTIC) {
+    ///     Ok(ct) => ct,
+    ///     Err(e) => panic!("{}", e),
+    /// };
+    ///
     /// let ct = match cipher.encrypt(pt, iv, ACCESS_HEURISTIC) {
     ///     Ok(ct) => ct,
     ///     Err(e) => panic!("{}", e),
     /// };
     /// ```
     ///
-    pub fn encrypt(&self, pt: Vec<u8>, iv: Vec<u8>, access: u32) -> KcapiResult<Vec<u8>> {
-        self.check_skcipher_input(&iv, &pt)?;
+    pub fn encrypt(
+        &self,
+        pt: impl AsRef<[u8]>,
+        iv: impl AsRef<[u8]>,
+        access: u32,
+    ) -> KcapiResult<Vec<u8>> {
+        let pt = pt.as_ref();
+        let iv = iv.as_ref();
+        self.check_skcipher_input(iv, pt)?;
         let mut ct = vec![0u8; pt.len()];
 
         unsafe {
@@ -425,15 +438,27 @@ impl KcapiSKCipher {
     ///     .expect("Failed to set key for KcapiSKCipher");
     ///
     /// let iv = vec![0xffu8; cipher.ivsize];
-    /// let ct = vec![0x2e, 0x8c, 0x27, 0xb8, 0x80, 0xa6, 0xc, 0x6c, 0xe7, 0x3e, 0x96, 0x3d, 0xeb];
+    /// let ct = vec![119, 62, 224, 165, 133, 169, 122, 93, 149, 1, 43, 182, 31];
+    /// let pt = match cipher.decrypt(&ct, &iv, ACCESS_HEURISTIC) {
+    ///     Ok(pt) => assert_eq!(pt, "Hello, World!".as_bytes()),
+    ///     Err(e) => panic!("{}", e),
+    /// };
+    ///
     /// let pt = match cipher.decrypt(ct, iv, ACCESS_HEURISTIC) {
-    ///     Ok(pt) => pt, // Hello, World!
+    ///     Ok(pt) => assert_eq!(pt, "Hello, World!".as_bytes()),
     ///     Err(e) => panic!("{}", e),
     /// };
     /// ```
     ///
-    pub fn decrypt(&self, ct: Vec<u8>, iv: Vec<u8>, access: u32) -> KcapiResult<Vec<u8>> {
-        self.check_skcipher_input(&iv, &ct)?;
+    pub fn decrypt(
+        &self,
+        ct: impl AsRef<[u8]>,
+        iv: impl AsRef<[u8]>,
+        access: u32,
+    ) -> KcapiResult<Vec<u8>> {
+        let ct = ct.as_ref();
+        let iv = iv.as_ref();
+        self.check_skcipher_input(iv, ct)?;
         let mut pt = vec![0u8; ct.len()];
 
         unsafe {
@@ -948,13 +973,23 @@ impl VMSplice for KcapiSKCipher {
 /// let key = vec![0x00u8; 16];
 /// let iv = vec![0x00u8; 16];
 ///
+/// let ct = match kcapi::skcipher::encrypt("ctr(aes)", key.clone(), &pt, &iv) {
+///     Ok(ct) => ct,
+///     Err(e) => panic!("{}", e),
+/// };
+///
 /// let ct = match kcapi::skcipher::encrypt("ctr(aes)", key, pt, iv) {
 ///     Ok(ct) => ct,
 ///     Err(e) => panic!("{}", e),
 /// };
 /// ```
 ///
-pub fn encrypt(alg: &str, key: Vec<u8>, pt: Vec<u8>, iv: Vec<u8>) -> KcapiResult<Vec<u8>> {
+pub fn encrypt(
+    alg: &str,
+    key: Vec<u8>,
+    pt: impl AsRef<[u8]>,
+    iv: impl AsRef<[u8]>,
+) -> KcapiResult<Vec<u8>> {
     let mut cipher = KcapiSKCipher::new(alg, !INIT_AIO)?;
     cipher.setkey(key)?;
     let ct = cipher.encrypt(pt, iv, crate::ACCESS_HEURISTIC)?;
@@ -1032,13 +1067,23 @@ pub fn encrypt_aio(
 /// let key = vec![0x00u8; 16];
 /// let iv = vec![0x00u8; 16];
 ///
+/// let pt = match kcapi::skcipher::decrypt("ctr(aes)", key.clone(), &ct, &iv) {
+///     Ok(pt) => pt,
+///     Err(e) => panic!("{}", e),
+/// };
+///
 /// let pt = match kcapi::skcipher::decrypt("ctr(aes)", key, ct, iv) {
 ///     Ok(pt) => pt,
 ///     Err(e) => panic!("{}", e),
 /// };
 /// ```
 ///
-pub fn decrypt(alg: &str, key: Vec<u8>, ct: Vec<u8>, iv: Vec<u8>) -> KcapiResult<Vec<u8>> {
+pub fn decrypt(
+    alg: &str,
+    key: Vec<u8>,
+    ct: impl AsRef<[u8]>,
+    iv: impl AsRef<[u8]>,
+) -> KcapiResult<Vec<u8>> {
     let mut cipher = KcapiSKCipher::new(alg, !INIT_AIO)?;
     cipher.setkey(key)?;
     let pt = cipher.decrypt(ct, iv, crate::ACCESS_HEURISTIC)?;
@@ -1154,12 +1199,21 @@ fn check_aes_input(key: &[u8], input: &[u8]) -> KcapiResult<()> {
 /// let iv = [0u8; kcapi::skcipher::AES_BLOCKSIZE];
 /// let pt = "sixteen byte str".as_bytes().to_vec();
 ///
+/// let ct = kcapi::skcipher::enc_aes_cbc(&key, &pt, iv)
+///     .expect("Failed AES Encryption");
+///
 /// let ct = kcapi::skcipher::enc_aes_cbc(key, pt, iv)
 ///     .expect("Failed AES Encryption");
 /// ```
 ///
-pub fn enc_aes_cbc(key: Vec<u8>, pt: Vec<u8>, iv: [u8; AES_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
-    check_aes_input(&key, &pt)?;
+pub fn enc_aes_cbc(
+    key: impl AsRef<[u8]>,
+    pt: impl AsRef<[u8]>,
+    iv: [u8; AES_BLOCKSIZE],
+) -> KcapiResult<Vec<u8>> {
+    let key = key.as_ref();
+    let pt = pt.as_ref();
+    check_aes_input(key, pt)?;
     let mut ct = vec![0u8; pt.len()];
 
     let ret: kcapi_sys::ssize_t;
@@ -1222,12 +1276,21 @@ pub fn enc_aes_cbc(key: Vec<u8>, pt: Vec<u8>, iv: [u8; AES_BLOCKSIZE]) -> KcapiR
 /// let ct = kcapi::skcipher::enc_aes_cbc(key.clone(), pt, iv.clone())
 ///     .expect("Failed AES Encryption");
 ///
+/// let plain = kcapi::skcipher::dec_aes_cbc(&key, &ct, iv)
+///     .expect("Failed AES Decryption");
+///
 /// let plain = kcapi::skcipher::dec_aes_cbc(key, ct, iv)
 ///     .expect("Failed AES Decryption");
 /// ```
 ///
-pub fn dec_aes_cbc(key: Vec<u8>, ct: Vec<u8>, iv: [u8; AES_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
-    check_aes_input(&key, &ct)?;
+pub fn dec_aes_cbc(
+    key: impl AsRef<[u8]>,
+    ct: impl AsRef<[u8]>,
+    iv: [u8; AES_BLOCKSIZE],
+) -> KcapiResult<Vec<u8>> {
+    let key = key.as_ref();
+    let ct = ct.as_ref();
+    check_aes_input(key, ct)?;
     let mut pt = vec![0u8; ct.len()];
 
     let ret: kcapi_sys::ssize_t;
@@ -1284,14 +1347,25 @@ pub fn dec_aes_cbc(key: Vec<u8>, ct: Vec<u8>, iv: [u8; AES_BLOCKSIZE]) -> KcapiR
 /// let ctr = [0u8; 16];
 /// let pt = vec![0u8; 16];
 ///
+/// let ct = match kcapi::skcipher::enc_aes_ctr(&key, &pt, ctr) {
+///     Ok(ct) => ct,
+///     Err(e) => panic!("{}", e),
+/// };
+///
 /// let ct = match kcapi::skcipher::enc_aes_ctr(key, pt, ctr) {
 ///     Ok(ct) => ct,
 ///     Err(e) => panic!("{}", e),
 /// };
 /// ```
 ///
-pub fn enc_aes_ctr(key: Vec<u8>, pt: Vec<u8>, ctr: [u8; AES_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
-    check_aes_input(&key, &pt)?;
+pub fn enc_aes_ctr(
+    key: impl AsRef<[u8]>,
+    pt: impl AsRef<[u8]>,
+    ctr: [u8; AES_BLOCKSIZE],
+) -> KcapiResult<Vec<u8>> {
+    let key = key.as_ref();
+    let pt = pt.as_ref();
+    check_aes_input(key, pt)?;
     let mut ct = vec![0u8; pt.len()];
 
     let ret: kcapi_sys::ssize_t;
@@ -1351,14 +1425,25 @@ pub fn enc_aes_ctr(key: Vec<u8>, pt: Vec<u8>, ctr: [u8; AES_BLOCKSIZE]) -> Kcapi
 ///     Err(e) => panic!("{}", e),
 /// };
 ///
+/// let plain = match kcapi::skcipher::dec_aes_ctr(&key, &ct, ctr) {
+///     Ok(plain) => plain,
+///     Err(e) => panic!("{}", e),
+/// };
+///
 /// let plain = match kcapi::skcipher::dec_aes_ctr(key, ct, ctr) {
 ///     Ok(plain) => plain,
 ///     Err(e) => panic!("{}", e),
 /// };
 /// ```
 ///
-pub fn dec_aes_ctr(key: Vec<u8>, ct: Vec<u8>, ctr: [u8; AES_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
-    check_aes_input(&key, &ct)?;
+pub fn dec_aes_ctr(
+    key: impl AsRef<[u8]>,
+    ct: impl AsRef<[u8]>,
+    ctr: [u8; AES_BLOCKSIZE],
+) -> KcapiResult<Vec<u8>> {
+    let key = key.as_ref();
+    let ct = ct.as_ref();
+    check_aes_input(key, ct)?;
     let mut pt = vec![0u8; ct.len()];
 
     let ret: kcapi_sys::ssize_t;
