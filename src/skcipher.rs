@@ -103,7 +103,7 @@ enum SKCipherMode {
 /// };
 /// ```
 ///
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct KcapiSKCipher {
     handle: *mut kcapi_sys::kcapi_handle,
     iv: Vec<u8>,
