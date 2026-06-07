@@ -47,7 +47,7 @@
 //! finalize hash data for incremental hash operations.
 //!
 //! In addition to this, convenience functions are provided to perform `sha{1,224,256,384,512}`
-//! based hashes and HMACs.
+//! and `sm3` based hashes and HMACs.
 //!
 
 use std::{convert::TryInto, ffi::CString};
@@ -59,12 +59,14 @@ const SHA224_BITSIZE: usize = 224;
 const SHA256_BITSIZE: usize = 256;
 const SHA384_BITSIZE: usize = 384;
 const SHA512_BITSIZE: usize = 512;
+const SM3_BITSIZE: usize = 256;
 
 pub const SHA1_DIGESTSIZE: usize = SHA1_BITSIZE / BITS_PER_BYTE;
 pub const SHA224_DIGESTSIZE: usize = SHA224_BITSIZE / BITS_PER_BYTE;
 pub const SHA256_DIGESTSIZE: usize = SHA256_BITSIZE / BITS_PER_BYTE;
 pub const SHA384_DIGESTSIZE: usize = SHA384_BITSIZE / BITS_PER_BYTE;
 pub const SHA512_DIGESTSIZE: usize = SHA512_BITSIZE / BITS_PER_BYTE;
+pub const SM3_DIGESTSIZE: usize = SM3_BITSIZE / BITS_PER_BYTE;
 
 ///
 /// # The `KcapiHash` type
@@ -839,6 +841,88 @@ pub fn hmac_sha512(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA512_DIGE
     }
 
     if ret != SHA512_DIGESTSIZE as kcapi_sys::ssize_t {
+        return Err(KcapiError {
+            code: ret.try_into().expect("failed to convert i64 into i32"),
+            message: "Failed to generate message hmac".to_string(),
+        });
+    }
+
+    Ok(hmac)
+}
+
+///
+/// ## Calculate a SM3 message digest on an input buffer
+///
+/// With this one-shot convenience function the SM3 message digest of an
+/// input buffer can be obtained.
+/// The input buffer must be a `Vec<u8>` of size less than `INT_MAX`
+///
+/// On success, a `[u8; SM3_DIGESTSIZE]` is returned.
+/// On failure, a `KcapiError` is returned.
+///
+/// ## Examples
+///
+/// ```no_run
+/// let digest = kcapi::md::sm3("Hello, World!".as_bytes().to_vec());
+/// ```
+///
+pub fn sm3(input: Vec<u8>) -> KcapiResult<[u8; SM3_DIGESTSIZE]> {
+    let mut digest = [0u8; SM3_DIGESTSIZE];
+
+    let ret: kcapi_sys::ssize_t;
+    unsafe {
+        ret = kcapi_sys::kcapi_md_sm3(
+            input.as_ptr(),
+            input.len() as kcapi_sys::size_t,
+            digest.as_mut_ptr(),
+            SM3_DIGESTSIZE as kcapi_sys::size_t,
+        );
+    }
+
+    if ret != SM3_DIGESTSIZE as kcapi_sys::ssize_t {
+        return Err(KcapiError {
+            code: ret.try_into().expect("failed to convert i64 into i32"),
+            message: "Failed to generate message digest".to_string(),
+        });
+    }
+
+    Ok(digest)
+}
+
+///
+/// ## Calculate HMAC SM3 keyed message digest on an input buffer
+///
+/// With this one-shot convenience function, the HMAC SM3 keyed message digest
+/// of an input buffer can be obtained.
+/// The input buffer must be a `Vec<u8>` of size less than `INT_MAX`.
+/// The input key must be a `Vec<u8>`.
+///
+/// On success a `[u8; SM3_DIGESTSIZE]` is returned.
+/// On failure, a `KcapiError` is returned.
+///
+/// ## Examples
+///
+/// ```no_run
+/// let key = vec![0xffu8; 16];
+/// let hmac = kcapi::md::hmac_sm3("Hello, World!".as_bytes().to_vec(), key);
+/// ```
+///
+pub fn hmac_sm3(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SM3_DIGESTSIZE]> {
+    let mut hmac = [0u8; SM3_DIGESTSIZE];
+
+    let ret: kcapi_sys::ssize_t;
+    unsafe {
+        ret = kcapi_sys::kcapi_md_hmac_sm3(
+            key.as_ptr(),
+            key.len() as u32,
+            input.as_ptr(),
+            input.len() as kcapi_sys::size_t,
+            hmac.as_mut_ptr(),
+            hmac.len() as kcapi_sys::size_t,
+        );
+    }
+
+    if ret != SM3_DIGESTSIZE as kcapi_sys::ssize_t {
         return Err(KcapiError {
             code: ret.try_into().expect("failed to convert i64 into i32"),
             message: "Failed to generate message hmac".to_string(),

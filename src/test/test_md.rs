@@ -35,7 +35,8 @@
 #[cfg(test)]
 mod tests {
     use crate::md::{
-        SHA1_DIGESTSIZE, SHA224_DIGESTSIZE, SHA256_DIGESTSIZE, SHA384_DIGESTSIZE, SHA512_DIGESTSIZE,
+        SHA1_DIGESTSIZE, SHA224_DIGESTSIZE, SHA256_DIGESTSIZE, SHA384_DIGESTSIZE,
+        SHA512_DIGESTSIZE, SM3_DIGESTSIZE,
     };
 
     #[test]
@@ -326,6 +327,46 @@ mod tests {
             }
         };
         assert_eq!(hmac, HMAC_EXP);
+    }
+
+    // SM3 is gated behind kernel `CONFIG_CRYPTO_SM3`, which is not enabled on
+    // every kernel, so this test is ignored by default. Run it explicitly with
+    // `cargo test -- --ignored` on a kernel that registers `sm3`.
+    #[test]
+    #[ignore]
+    fn test_md_sm3() {
+        // Standard SM3 known-answer test vector: SM3("abc").
+        let inp = b"abc".to_vec();
+        const DIGEST_EXP: [u8; SM3_DIGESTSIZE] = [
+            0x66, 0xc7, 0xf0, 0xf4, 0x62, 0xee, 0xed, 0xd9, 0xd1, 0xf2, 0xd4, 0x6b, 0xdc, 0x10,
+            0xe4, 0xe2, 0x41, 0x67, 0xc4, 0x87, 0x5c, 0xf2, 0xf7, 0xa2, 0x29, 0x7d, 0xa0, 0x2b,
+            0x8f, 0x4b, 0xa8, 0xe0,
+        ];
+
+        let digest = match crate::md::sm3(inp) {
+            Ok(digest) => digest,
+            Err(e) => {
+                panic!("{}", e);
+            }
+        };
+        assert_eq!(digest, DIGEST_EXP);
+    }
+
+    // HMAC-SM3 is likewise gated behind kernel SM3 support. Run explicitly with
+    // `cargo test -- --ignored` on a kernel that registers `hmac(sm3)`.
+    #[test]
+    #[ignore]
+    fn test_md_hmac_sm3() {
+        let inp = vec![0x41u8; 16];
+        let key = vec![0x0u8; SM3_DIGESTSIZE];
+
+        let hmac = match crate::md::hmac_sm3(inp, key) {
+            Ok(hmac) => hmac,
+            Err(e) => {
+                panic!("{}", e);
+            }
+        };
+        assert_eq!(hmac.len(), SM3_DIGESTSIZE);
     }
 
     #[test]
