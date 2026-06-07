@@ -239,7 +239,7 @@ impl KcapiSKCipher {
                 message: format!("Invald IV Size for algorithm '{}'", self.algorithm),
             });
         }
-        if input.len() % self.blocksize != 0 {
+        if !input.len().is_multiple_of(self.blocksize) {
             return Err(KcapiError {
                 code: -libc::EINVAL,
                 message: format!(
@@ -1093,7 +1093,7 @@ pub fn decrypt_aio(
 }
 
 fn check_aes_input(key: &[u8], input: &[u8]) -> KcapiResult<()> {
-    if input.len() % AES_BLOCKSIZE != 0 {
+    if !input.len().is_multiple_of(AES_BLOCKSIZE) {
         return Err(KcapiError {
             code: -libc::EINVAL,
             message: format!(
