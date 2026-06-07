@@ -46,8 +46,8 @@
 //! a `KcapiHash` type is defined which provides an API to initialize, set HMAC keys, update, and
 //! finalize hash data for incremental hash operations.
 //!
-//! In addition to this, convenience functions are provided to perform `sha{1,224,256,384,512}`
-//! and `sm3` based hashes and HMACs.
+//! In addition to this, convenience functions are provided to perform `sha{1,224,256,384,512}`,
+//! `sha3-{224,256,384,512}`, and `sm3` based hashes and HMACs.
 //!
 
 use std::{convert::TryInto, ffi::CString};
@@ -60,6 +60,10 @@ const SHA256_BITSIZE: usize = 256;
 const SHA384_BITSIZE: usize = 384;
 const SHA512_BITSIZE: usize = 512;
 const SM3_BITSIZE: usize = 256;
+const SHA3_224_BITSIZE: usize = 224;
+const SHA3_256_BITSIZE: usize = 256;
+const SHA3_384_BITSIZE: usize = 384;
+const SHA3_512_BITSIZE: usize = 512;
 
 pub const SHA1_DIGESTSIZE: usize = SHA1_BITSIZE / BITS_PER_BYTE;
 pub const SHA224_DIGESTSIZE: usize = SHA224_BITSIZE / BITS_PER_BYTE;
@@ -67,6 +71,10 @@ pub const SHA256_DIGESTSIZE: usize = SHA256_BITSIZE / BITS_PER_BYTE;
 pub const SHA384_DIGESTSIZE: usize = SHA384_BITSIZE / BITS_PER_BYTE;
 pub const SHA512_DIGESTSIZE: usize = SHA512_BITSIZE / BITS_PER_BYTE;
 pub const SM3_DIGESTSIZE: usize = SM3_BITSIZE / BITS_PER_BYTE;
+pub const SHA3_224_DIGESTSIZE: usize = SHA3_224_BITSIZE / BITS_PER_BYTE;
+pub const SHA3_256_DIGESTSIZE: usize = SHA3_256_BITSIZE / BITS_PER_BYTE;
+pub const SHA3_384_DIGESTSIZE: usize = SHA3_384_BITSIZE / BITS_PER_BYTE;
+pub const SHA3_512_DIGESTSIZE: usize = SHA3_512_BITSIZE / BITS_PER_BYTE;
 
 ///
 /// # The `KcapiHash` type
@@ -930,4 +938,160 @@ pub fn hmac_sm3(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SM3_DIGESTSIZE
     }
 
     Ok(hmac)
+}
+
+///
+/// ## Calculate a SHA3-224 message digest on an input buffer
+///
+/// With this one-shot convenience function the SHA3-224 message digest of an
+/// input buffer can be obtained.
+/// The input buffer must be a `Vec<u8>` of size less than `INT_MAX`
+///
+/// On success, a `[u8; SHA3_224_DIGESTSIZE]` is returned.
+/// On failure, a `KcapiError` is returned.
+///
+/// ## Examples
+///
+/// ```
+/// let digest = kcapi::md::sha3_224("Hello, World!".as_bytes().to_vec());
+/// ```
+///
+pub fn sha3_224(input: Vec<u8>) -> KcapiResult<[u8; SHA3_224_DIGESTSIZE]> {
+    let mut digest = [0u8; SHA3_224_DIGESTSIZE];
+
+    let ret: kcapi_sys::ssize_t;
+    unsafe {
+        ret = kcapi_sys::kcapi_md_sha3_224(
+            input.as_ptr(),
+            input.len() as kcapi_sys::size_t,
+            digest.as_mut_ptr(),
+            SHA3_224_DIGESTSIZE as kcapi_sys::size_t,
+        );
+    }
+
+    if ret != SHA3_224_DIGESTSIZE as kcapi_sys::ssize_t {
+        return Err(KcapiError {
+            code: ret.try_into().expect("failed to convert i64 into i32"),
+            message: "Failed to generate message digest".to_string(),
+        });
+    }
+
+    Ok(digest)
+}
+
+///
+/// ## Calculate a SHA3-256 message digest on an input buffer
+///
+/// With this one-shot convenience function the SHA3-256 message digest of an
+/// input buffer can be obtained.
+/// The input buffer must be a `Vec<u8>` of size less than `INT_MAX`
+///
+/// On success, a `[u8; SHA3_256_DIGESTSIZE]` is returned.
+/// On failure, a `KcapiError` is returned.
+///
+/// ## Examples
+///
+/// ```
+/// let digest = kcapi::md::sha3_256("Hello, World!".as_bytes().to_vec());
+/// ```
+///
+pub fn sha3_256(input: Vec<u8>) -> KcapiResult<[u8; SHA3_256_DIGESTSIZE]> {
+    let mut digest = [0u8; SHA3_256_DIGESTSIZE];
+
+    let ret: kcapi_sys::ssize_t;
+    unsafe {
+        ret = kcapi_sys::kcapi_md_sha3_256(
+            input.as_ptr(),
+            input.len() as kcapi_sys::size_t,
+            digest.as_mut_ptr(),
+            SHA3_256_DIGESTSIZE as kcapi_sys::size_t,
+        );
+    }
+
+    if ret != SHA3_256_DIGESTSIZE as kcapi_sys::ssize_t {
+        return Err(KcapiError {
+            code: ret.try_into().expect("failed to convert i64 into i32"),
+            message: "Failed to generate message digest".to_string(),
+        });
+    }
+
+    Ok(digest)
+}
+
+///
+/// ## Calculate a SHA3-384 message digest on an input buffer
+///
+/// With this one-shot convenience function the SHA3-384 message digest of an
+/// input buffer can be obtained.
+/// The input buffer must be a `Vec<u8>` of size less than `INT_MAX`
+///
+/// On success, a `[u8; SHA3_384_DIGESTSIZE]` is returned.
+/// On failure, a `KcapiError` is returned.
+///
+/// ## Examples
+///
+/// ```
+/// let digest = kcapi::md::sha3_384("Hello, World!".as_bytes().to_vec());
+/// ```
+///
+pub fn sha3_384(input: Vec<u8>) -> KcapiResult<[u8; SHA3_384_DIGESTSIZE]> {
+    let mut digest = [0u8; SHA3_384_DIGESTSIZE];
+
+    let ret: kcapi_sys::ssize_t;
+    unsafe {
+        ret = kcapi_sys::kcapi_md_sha3_384(
+            input.as_ptr(),
+            input.len() as kcapi_sys::size_t,
+            digest.as_mut_ptr(),
+            SHA3_384_DIGESTSIZE as kcapi_sys::size_t,
+        );
+    }
+
+    if ret != SHA3_384_DIGESTSIZE as kcapi_sys::ssize_t {
+        return Err(KcapiError {
+            code: ret.try_into().expect("failed to convert i64 into i32"),
+            message: "Failed to generate message digest".to_string(),
+        });
+    }
+
+    Ok(digest)
+}
+
+///
+/// ## Calculate a SHA3-512 message digest on an input buffer
+///
+/// With this one-shot convenience function the SHA3-512 message digest of an
+/// input buffer can be obtained.
+/// The input buffer must be a `Vec<u8>` of size less than `INT_MAX`
+///
+/// On success, a `[u8; SHA3_512_DIGESTSIZE]` is returned.
+/// On failure, a `KcapiError` is returned.
+///
+/// ## Examples
+///
+/// ```
+/// let digest = kcapi::md::sha3_512("Hello, World!".as_bytes().to_vec());
+/// ```
+///
+pub fn sha3_512(input: Vec<u8>) -> KcapiResult<[u8; SHA3_512_DIGESTSIZE]> {
+    let mut digest = [0u8; SHA3_512_DIGESTSIZE];
+
+    let ret: kcapi_sys::ssize_t;
+    unsafe {
+        ret = kcapi_sys::kcapi_md_sha3_512(
+            input.as_ptr(),
+            input.len() as kcapi_sys::size_t,
+            digest.as_mut_ptr(),
+            SHA3_512_DIGESTSIZE as kcapi_sys::size_t,
+        );
+    }
+
+    if ret != SHA3_512_DIGESTSIZE as kcapi_sys::ssize_t {
+        return Err(KcapiError {
+            code: ret.try_into().expect("failed to convert i64 into i32"),
+            message: "Failed to generate message digest".to_string(),
+        });
+    }
+
+    Ok(digest)
 }
