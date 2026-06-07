@@ -36,6 +36,7 @@
 mod tests {
     use crate::skcipher::{
         KcapiSKCipher, AES128_KEYSIZE, AES192_KEYSIZE, AES256_KEYSIZE, AES_BLOCKSIZE,
+        SM4_BLOCKSIZE, SM4_KEYSIZE,
     };
 
     #[test]
@@ -878,6 +879,62 @@ mod tests {
                     assert_eq!(o, out_exp);
                 }
             }
+        }
+    }
+
+    // SM4 is gated behind kernel `CONFIG_CRYPTO_SM4`, which is not enabled on
+    // every kernel, so the round-trip tests are ignored by default. Run them
+    // with `cargo test -- --ignored` on a kernel that registers `cbc(sm4)` and
+    // `ctr(sm4)`.
+    #[test]
+    #[ignore]
+    fn test_sm4_cbc() {
+        let pt = vec![0x41u8; SM4_BLOCKSIZE];
+        let key = vec![0u8; SM4_KEYSIZE];
+        let iv = [0u8; SM4_BLOCKSIZE];
+
+        let ct = match crate::skcipher::enc_sm4_cbc(key.clone(), pt.clone(), iv) {
+            Ok(ct) => ct,
+            Err(e) => panic!("{}", e),
+        };
+        let plain = match crate::skcipher::dec_sm4_cbc(key, ct, iv) {
+            Ok(plain) => plain,
+            Err(e) => panic!("{}", e),
+        };
+        assert_eq!(plain, pt);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_sm4_ctr() {
+        let pt = vec![0x41u8; 20];
+        let key = vec![0u8; SM4_KEYSIZE];
+        let ctr = [0u8; SM4_BLOCKSIZE];
+
+        let ct = match crate::skcipher::enc_sm4_ctr(key.clone(), pt.clone(), ctr) {
+            Ok(ct) => ct,
+            Err(e) => panic!("{}", e),
+        };
+        let plain = match crate::skcipher::dec_sm4_ctr(key, ct, ctr) {
+            Ok(plain) => plain,
+            Err(e) => panic!("{}", e),
+        };
+        assert_eq!(plain, pt);
+    }
+
+    // Key-length validation happens before any kernel call, so this test runs
+    // without requiring SM4 kernel support.
+    #[test]
+    fn test_sm4_invalid_key() {
+        let pt = vec![0x41u8; SM4_BLOCKSIZE];
+        let key = vec![0u8; SM4_KEYSIZE + 1];
+        let iv = [0u8; SM4_BLOCKSIZE];
+
+        if crate::skcipher::enc_sm4_cbc(key, pt, iv).is_ok() {
+            panic!(
+                "(BUG) SM4-CBC Encryption passed with invalid keysize of {}",
+                SM4_KEYSIZE + 1
+            );
         }
     }
 }

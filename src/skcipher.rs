@@ -61,11 +61,15 @@ const AES_BLOCKSIZE_BITS: usize = 128;
 const AES128_KEYSIZE_BITS: usize = 128;
 const AES192_KEYSIZE_BITS: usize = 192;
 const AES256_KEYSIZE_BITS: usize = 256;
+const SM4_BLOCKSIZE_BITS: usize = 128;
+const SM4_KEYSIZE_BITS: usize = 128;
 
 pub const AES_BLOCKSIZE: usize = AES_BLOCKSIZE_BITS / BITS_PER_BYTE;
 pub const AES128_KEYSIZE: usize = AES128_KEYSIZE_BITS / BITS_PER_BYTE;
 pub const AES192_KEYSIZE: usize = AES192_KEYSIZE_BITS / BITS_PER_BYTE;
 pub const AES256_KEYSIZE: usize = AES256_KEYSIZE_BITS / BITS_PER_BYTE;
+pub const SM4_BLOCKSIZE: usize = SM4_BLOCKSIZE_BITS / BITS_PER_BYTE;
+pub const SM4_KEYSIZE: usize = SM4_KEYSIZE_BITS / BITS_PER_BYTE;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum SKCipherMode {
@@ -1122,6 +1126,27 @@ fn check_aes_input(key: &[u8], input: &[u8]) -> KcapiResult<()> {
     Ok(())
 }
 
+fn check_sm4_input(key: &[u8], input: &[u8]) -> KcapiResult<()> {
+    if !input.len().is_multiple_of(SM4_BLOCKSIZE) {
+        return Err(KcapiError {
+            code: -libc::EINVAL,
+            message: format!(
+                "Input plaintext must be a multiple of {} bytes",
+                SM4_BLOCKSIZE
+            ),
+        });
+    }
+
+    if key.len() != SM4_KEYSIZE {
+        return Err(KcapiError {
+            code: -libc::EINVAL,
+            message: format!("Key must be {} bytes long", SM4_KEYSIZE),
+        });
+    }
+
+    Ok(())
+}
+
 ///
 /// ## Convenience function for AES CBC encryption
 ///
@@ -1364,6 +1389,247 @@ pub fn dec_aes_ctr(key: Vec<u8>, ct: Vec<u8>, ctr: [u8; AES_BLOCKSIZE]) -> Kcapi
     let ret: kcapi_sys::ssize_t;
     unsafe {
         ret = kcapi_sys::kcapi_cipher_dec_aes_ctr(
+            key.as_ptr(),
+            key.len()
+                .try_into()
+                .expect("Failed to convert usize to u32"),
+            ct.as_ptr(),
+            ct.len() as kcapi_sys::size_t,
+            ctr.as_ptr(),
+            pt.as_mut_ptr(),
+            pt.len() as kcapi_sys::size_t,
+        );
+    }
+    if ret < 0 {
+        return Err(KcapiError {
+            code: ret.try_into().expect("failed to convert i64 into i32"),
+            message: "Failed skcipher operation".to_string(),
+        });
+    }
+
+    Ok(pt)
+}
+
+///
+/// ## Convenience function for SM4 CBC encryption
+///
+/// The convenience function performs an SM4 CBC encryption operation using the
+/// provided key, the given input buffer and the given IV.
+///
+/// SM4 uses a 128-bit (16 byte) block and a 128-bit (16 byte) key. As with AES
+/// CBC, the input must be a multiple of `SM4_BLOCKSIZE` bytes; otherwise pad it.
+///
+/// This function takes:
+/// * `key` - A key of type `Vec<u8>` of exactly 16 bytes.
+/// * `pt` - A plaintext of type `Vec<u8>` which must be a multiple of 16 bytes long.
+/// * `iv` - An IV of type `[u8; SM4_BLOCKSIZE]`.
+///
+/// On success, a ciphertext of type `Vec<u8>` is returned.
+/// On failure, a `KcapiError` is returned.
+///
+/// ## Examples
+///
+/// ```no_run
+/// let key = vec![0u8; kcapi::skcipher::SM4_KEYSIZE];
+/// let iv = [0u8; kcapi::skcipher::SM4_BLOCKSIZE];
+/// let pt = "sixteen byte str".as_bytes().to_vec();
+///
+/// let ct = kcapi::skcipher::enc_sm4_cbc(key, pt, iv)
+///     .expect("Failed SM4 Encryption");
+/// ```
+///
+pub fn enc_sm4_cbc(key: Vec<u8>, pt: Vec<u8>, iv: [u8; SM4_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
+    check_sm4_input(&key, &pt)?;
+    let mut ct = vec![0u8; pt.len()];
+
+    let ret: kcapi_sys::ssize_t;
+    unsafe {
+        ret = kcapi_sys::kcapi_cipher_enc_sm4_cbc(
+            key.as_ptr(),
+            key.len()
+                .try_into()
+                .expect("Failed to convert usize to u32"),
+            pt.as_ptr(),
+            pt.len() as kcapi_sys::size_t,
+            iv.as_ptr(),
+            ct.as_mut_ptr(),
+            ct.len() as kcapi_sys::size_t,
+        );
+    }
+    if ret < 0 {
+        return Err(KcapiError {
+            code: ret.try_into().expect("failed to convert i64 into i32"),
+            message: "Failed skcipher operation".to_string(),
+        });
+    }
+    Ok(ct)
+}
+
+///
+/// ## Convenience function for SM4 CBC decryption
+///
+/// The convenience function performs an SM4 CBC decryption operation using the
+/// provided key, the given input buffer and the given IV.
+///
+/// SM4 uses a 128-bit (16 byte) block and a 128-bit (16 byte) key. The input
+/// must be a multiple of `SM4_BLOCKSIZE` bytes, and the output buffer is at
+/// least as large as the input.
+///
+/// This function takes:
+/// * `key` - A key of type `Vec<u8>` of exactly 16 bytes.
+/// * `ct` - A ciphertext of type `Vec<u8>` with length a multiple of `SM4_BLOCKSIZE`.
+/// * `iv` - An IV of type `[u8; SM4_BLOCKSIZE]`.
+///
+/// On success, a `Vec<u8>` filled with plaintext is returned.
+/// On failure, a `KcapiError` is returned.
+///
+/// ## Examples
+///
+/// ```no_run
+/// let key = vec![0u8; kcapi::skcipher::SM4_KEYSIZE];
+/// let iv = [0u8; kcapi::skcipher::SM4_BLOCKSIZE];
+/// let pt = "sixteen byte str".as_bytes().to_vec();
+///
+/// let ct = kcapi::skcipher::enc_sm4_cbc(key.clone(), pt, iv.clone())
+///     .expect("Failed SM4 Encryption");
+///
+/// let plain = kcapi::skcipher::dec_sm4_cbc(key, ct, iv)
+///     .expect("Failed SM4 Decryption");
+/// ```
+///
+pub fn dec_sm4_cbc(key: Vec<u8>, ct: Vec<u8>, iv: [u8; SM4_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
+    check_sm4_input(&key, &ct)?;
+    let mut pt = vec![0u8; ct.len()];
+
+    let ret: kcapi_sys::ssize_t;
+    unsafe {
+        ret = kcapi_sys::kcapi_cipher_dec_sm4_cbc(
+            key.as_ptr(),
+            key.len()
+                .try_into()
+                .expect("Failed to convert usize to u32"),
+            ct.as_ptr(),
+            ct.len() as kcapi_sys::size_t,
+            iv.as_ptr(),
+            pt.as_mut_ptr(),
+            pt.len() as kcapi_sys::size_t,
+        );
+    }
+    if ret < 0 {
+        return Err(KcapiError {
+            code: ret.try_into().expect("failed to convert i64 into i32"),
+            message: "Failed skcipher operation".to_string(),
+        });
+    }
+
+    Ok(pt)
+}
+
+///
+/// ## Convenience function for SM4 CTR encryption
+///
+/// The convenience function performs an SM4 counter mode encryption operation
+/// using the provided key, the given input buffer and the given start counter.
+///
+/// The input buffer can be of arbitrary length. The start counter can contain
+/// all zeros (not a NULL buffer!) and must be exactly `SM4_BLOCKSIZE` bytes.
+///
+/// This function takes:
+/// * `key` - An encryption key of type `Vec<u8>` of exactly 16 bytes.
+/// * `pt` - The plaintext to be encrypted of type `Vec<u8>`.
+/// * `ctr` - A start counter of type `[u8; SM4_BLOCKSIZE]`.
+///
+/// On success, a `Vec<u8>` of ciphertext is returned.
+/// On failure, a `KcapiError` is returned.
+///
+/// ## Examples
+///
+/// ```no_run
+/// let key = vec![0u8; kcapi::skcipher::SM4_KEYSIZE];
+/// let ctr = [0u8; kcapi::skcipher::SM4_BLOCKSIZE];
+/// let pt = vec![0u8; 16];
+///
+/// let ct = kcapi::skcipher::enc_sm4_ctr(key, pt, ctr)
+///     .expect("Failed SM4 Encryption");
+/// ```
+///
+pub fn enc_sm4_ctr(key: Vec<u8>, pt: Vec<u8>, ctr: [u8; SM4_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
+    // CTR mode turns the block cipher into a stream cipher, so only the key
+    // size needs checking; the plaintext may be of arbitrary length.
+    if key.len() != SM4_KEYSIZE {
+        return Err(KcapiError {
+            code: -libc::EINVAL,
+            message: format!("Key must be {} bytes long", SM4_KEYSIZE),
+        });
+    }
+    let mut ct = vec![0u8; pt.len()];
+
+    let ret: kcapi_sys::ssize_t;
+    unsafe {
+        ret = kcapi_sys::kcapi_cipher_enc_sm4_ctr(
+            key.as_ptr(),
+            key.len()
+                .try_into()
+                .expect("Failed to convert usize to u32"),
+            pt.as_ptr(),
+            pt.len() as kcapi_sys::size_t,
+            ctr.as_ptr(),
+            ct.as_mut_ptr(),
+            ct.len() as kcapi_sys::size_t,
+        );
+    }
+    if ret < 0 {
+        return Err(KcapiError {
+            code: ret.try_into().expect("failed to convert i64 into i32"),
+            message: "Failed skcipher operation".to_string(),
+        });
+    }
+    Ok(ct)
+}
+
+///
+/// ## Convenience function for SM4 CTR decryption
+///
+/// The convenience function performs an SM4 counter mode decryption operation
+/// using the provided key, the given input buffer and the given start counter.
+///
+/// The input buffer can be of arbitrary length. The start counter can contain
+/// all zeros (not a NULL buffer!) and must be exactly `SM4_BLOCKSIZE` bytes.
+///
+/// This function takes:
+/// * `key` - A decryption key of type `Vec<u8>` of exactly 16 bytes.
+/// * `ct` - The ciphertext to be decrypted of type `Vec<u8>`.
+/// * `ctr` - A start counter of type `[u8; SM4_BLOCKSIZE]`.
+///
+/// On success, a `Vec<u8>` of plaintext is returned.
+/// On failure, a `KcapiError` is returned.
+///
+/// ## Examples
+///
+/// ```no_run
+/// let key = vec![0u8; kcapi::skcipher::SM4_KEYSIZE];
+/// let ctr = [0u8; kcapi::skcipher::SM4_BLOCKSIZE];
+/// let pt = vec![0u8; 16];
+///
+/// let ct = kcapi::skcipher::enc_sm4_ctr(key.clone(), pt, ctr.clone())
+///     .expect("Failed SM4 Encryption");
+///
+/// let plain = kcapi::skcipher::dec_sm4_ctr(key, ct, ctr)
+///     .expect("Failed SM4 Decryption");
+/// ```
+///
+pub fn dec_sm4_ctr(key: Vec<u8>, ct: Vec<u8>, ctr: [u8; SM4_BLOCKSIZE]) -> KcapiResult<Vec<u8>> {
+    if key.len() != SM4_KEYSIZE {
+        return Err(KcapiError {
+            code: -libc::EINVAL,
+            message: format!("Key must be {} bytes long", SM4_KEYSIZE),
+        });
+    }
+    let mut pt = vec![0u8; ct.len()];
+
+    let ret: kcapi_sys::ssize_t;
+    unsafe {
+        ret = kcapi_sys::kcapi_cipher_dec_sm4_ctr(
             key.as_ptr(),
             key.len()
                 .try_into()
