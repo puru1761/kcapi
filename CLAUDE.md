@@ -71,3 +71,23 @@ When adding a new algorithm/operation, mirror this pattern: extend the context s
 - All `unsafe` FFI calls go through `kcapi_sys::*`. Negative return codes are kernel errnos — convert them into `KcapiError` with the code and a descriptive message rather than panicking.
 - Buffers cross the boundary as `Vec<u8>` / `*mut c_void`; sizes use `kcapi_sys::size_t`. Be careful that any `Vec` whose pointer is handed to the kernel outlives the call (see how `IOVec` retains `data`).
 - Raw handles are not `Send`/`Sync` by default; where a type is made `Send` it is an explicit `unsafe impl` (e.g. `KcapiHash`) — preserve that reasoning if you touch threading.
+
+## FFI coverage status and follow-ups
+
+Every distinct **algorithm** libkcapi exposes a convenience function for now has a safe wrapper: digests/HMAC incl. SM3, symmetric ciphers incl. SM4 (CBC/CTR), AEAD, RNG, akcipher, KDF, and KPP (DH/ECDH). To find the gap, diff the generated FFI surface against what the safe crate calls:
+
+```sh
+f=$(find target -name bindings.rs -path '*kcapi-sys*' | head -1)
+comm -23 \
+  <(grep -oE 'pub fn kcapi_[a-z0-9_]+' "$f" | sed 's/pub fn //' | sort -u) \
+  <(grep -rhoE 'kcapi_sys::kcapi_[a-z0-9_]+' src/*.rs | sed 's/kcapi_sys:://' | sort -u)
+```
+
+The functions still unwrapped are **alternate I/O paths and utilities, not algorithms** — known, intentional follow-ups:
+
+- **AEAD** streaming (`kcapi_aead_stream_*`), AIO (`kcapi_aead_{encrypt,decrypt}_aio`), `kcapi_aead_getdata_{input,output}`, `kcapi_aead_ccm_nonce_to_iv` — would bring `aead` to parity with the streaming/AIO paths `skcipher` already has.
+- **akcipher** streaming (`kcapi_akcipher_stream_*`) and AIO (`kcapi_akcipher_*_aio`).
+- **KPP** AIO (`kcapi_kpp_keygen_aio`, `kcapi_kpp_ssgen_aio`).
+- **Utilities**: `kcapi_set_verbosity`, `kcapi_memset_secure`, `kcapi_versionstring`, `kcapi_handle_reinit`, `kcapi_pad_iv` (note `util::pad_iv`/`util::lib_version` already cover the last two in pure Rust).
+
+When picking one up, mirror the streaming/AIO shape already in `skcipher.rs` (`new_enc_stream`/`stream_update`/`stream_op`, `encrypt_aio`) and gate any test that needs an unavailable kernel feature behind `#[ignore]`.
