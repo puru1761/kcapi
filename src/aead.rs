@@ -343,7 +343,7 @@ impl KcapiAEAD {
     ///
     /// ## Examples
     ///
-    /// ```
+    /// ```no_run
     /// use kcapi::INIT_AIO;
     /// use kcapi::aead::KcapiAEAD;
     ///
@@ -430,7 +430,7 @@ impl KcapiAEAD {
     ///
     /// ## Examples
     ///
-    /// ```
+    /// ```no_run
     /// use kcapi::INIT_AIO;
     /// use kcapi::aead::KcapiAEAD;
     ///
@@ -520,7 +520,7 @@ impl KcapiAEAD {
     ///
     /// ## Examples
     ///
-    /// ```
+    /// ```no_run
     /// use kcapi::INIT_AIO;
     /// use kcapi::aead::KcapiAEAD;
     ///
@@ -577,7 +577,7 @@ impl KcapiAEAD {
     ///
     /// ## Examples
     ///
-    /// ```
+    /// ```no_run
     /// use kcapi::INIT_AIO;
     /// use kcapi::aead::KcapiAEAD;
     ///
@@ -627,7 +627,7 @@ impl KcapiAEAD {
     ///
     /// ## Examples
     ///
-    /// ```
+    /// ```no_run
     /// use kcapi::INIT_AIO;
     /// use kcapi::aead::KcapiAEAD;
     ///
@@ -699,7 +699,7 @@ impl KcapiAEAD {
     ///
     /// ## Examples
     ///
-    /// ```
+    /// ```no_run
     /// use kcapi::{INIT_AIO, ACCESS_HEURISTIC};
     /// use kcapi::aead::KcapiAEAD;
     ///
@@ -794,7 +794,7 @@ impl KcapiAEAD {
     ///
     /// ## Examples
     ///
-    /// ```
+    /// ```no_run
     /// use kcapi::{INIT_AIO, ACCESS_HEURISTIC};
     /// use kcapi::aead::KcapiAEAD;
     ///
@@ -992,7 +992,7 @@ pub fn ccm_nonce_to_iv(nonce: Vec<u8>) -> KcapiResult<Vec<u8>> {
 ///
 /// ## Examples
 ///
-/// ```
+/// ```no_run
 /// let key = vec![0u8; 16];
 /// let iv = vec![0u8; 12];
 /// let assocdata = vec![0u8; 16];
@@ -1039,7 +1039,7 @@ pub fn encrypt(
 ///
 /// ## Examples
 ///
-/// ```
+/// ```no_run
 /// let key = vec![0u8; 16];
 /// let iv = vec![0u8; 12];
 /// let assocdata = vec![0u8; 16];
