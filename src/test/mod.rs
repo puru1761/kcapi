@@ -36,6 +36,8 @@ mod test_aead;
 #[cfg(feature = "asym")]
 mod test_akcipher;
 mod test_kdf;
+#[cfg(feature = "kpp")]
+mod test_kpp;
 mod test_md;
 mod test_rng;
 mod test_skcipher;

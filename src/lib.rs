@@ -54,6 +54,7 @@
 //! * `rng` - Random Number Generation (RNG) API.
 //! * `akcipher` - Asymmetric key cipher API.
 //! * `kdf` - Key Derivation Function API.
+//! * `kpp` - Key Protocol Primitives (DH / ECDH) API.
 //!
 //! Each of these modules specify their own unique context type. For instance,
 //! the `skcipher` module provides the `KcapiSKCipher` context type, which
@@ -344,6 +345,8 @@ pub mod aead;
 #[cfg(feature = "asym")]
 pub mod akcipher;
 pub mod kdf;
+#[cfg(feature = "kpp")]
+pub mod kpp;
 pub mod md;
 pub mod rng;
 pub mod skcipher;
