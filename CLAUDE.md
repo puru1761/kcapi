@@ -46,6 +46,17 @@ Debian/Ubuntu one-liner: `sudo apt-get install -y autoconf automake libtool llvm
 
 Tests exercise real kernel crypto sockets, so the running kernel must have the `CONFIG_CRYPTO_USER*` options enabled (HASH, SKCIPHER, RNG, AEAD; plus `AKCIPHER` for the `asym` feature, `RNG_CAVP` for RNG CAVP tests). See README.md / lib.rs module docs for the full list. Missing kernel support shows up as runtime errors from the kernel, not compile errors.
 
+### Testing when an algorithm isn't available (CI gotchas)
+
+The build env and the test env diverge constantly, and a missing algorithm surfaces as a **runtime** failure (`KcapiError`), never a compile error. The most common case: **GitHub-hosted CI runners don't provide `gcm(aes)`/`ccm(aes)`** (no `algif_aead`/`gcm` modules), so any AEAD operation fails at init with `-ENOENT` (`-2`) before it ever reaches a crypto result. Other environment-dependent pieces: SM3/SM4 (kernel `CONFIG_CRYPTO_SM{3,4}`), the SHA-1 DRBG names (removed on modern kernels — use `drbg_nopr_sha256`), and AIO paths (some kernels/containers restrict `io_setup`, yielding `-EINVAL` (`-22`)).
+
+A test that asserts a specific kernel behavior must therefore distinguish "the algorithm isn't here" from a real failure. **Match the mechanism to the test kind:**
+
+- **Unit tests** (`src/test/test_*.rs`): explicitly compare the error code and skip (early `return`) only on the unavailable-errno, otherwise assert as normal. In `kcapi` use the named constant: `Err(e) if e.code == -libc::ENOENT => return,`; in `kcapi-sys`'s raw-FFI tests the return is an `i64`, so cast: `if ret == -(libc::ENOENT as i64) { return; }` (`kcapi-sys` pulls in `libc` as a dev-dependency for this). Do **not** broaden this to "skip on any error" — that masks real regressions; skip only on the specific unavailable code.
+- **Doctests** (the `///` runnable examples in module sources like `src/aead.rs`): you can't cleanly skip at runtime, and stuffing errno-handling into a doc example ruins it as documentation. Mark the fence ```` ```no_run ```` instead — rustdoc still **compiles** the example (so it stays correct against the API) but does not execute it. This is the same treatment the SM3/SM4 examples already use. `cargo test` runs doctests as a separate binary, so a failing example shows up under `Doc-tests` / "doctest failed", distinct from the unit-test results — check both when triaging CI.
+
+When triaging a CI failure, read the failing target name: `src/aead.rs - aead::… (line N)` is a **doctest** (→ `no_run`); `test::test_aead::tests::…` is a **unit test** (→ errno guard). Tests/examples for algorithms that are simply absent on the dev box (SM3/SM4, akcipher/KPP needing out-of-tree patches) stay `#[ignore]`d / `no_run` rather than gating CI.
+
 ## Architecture
 
 `src/lib.rs` is the crate root. It defines the cross-cutting types that every module returns or consumes:
