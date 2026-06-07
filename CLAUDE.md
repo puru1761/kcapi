@@ -91,3 +91,23 @@ The functions still unwrapped are **alternate I/O paths and utilities, not algor
 - **Utilities**: `kcapi_set_verbosity`, `kcapi_memset_secure`, `kcapi_versionstring`, `kcapi_handle_reinit`, `kcapi_pad_iv` (note `util::pad_iv`/`util::lib_version` already cover the last two in pure Rust).
 
 When picking one up, mirror the streaming/AIO shape already in `skcipher.rs` (`new_enc_stream`/`stream_update`/`stream_op`, `encrypt_aio`) and gate any test that needs an unavailable kernel feature behind `#[ignore]`.
+
+## Maintenance: versioning, branching, and upgrading libkcapi
+
+### Branching and versioning conventions
+
+- **Commit directly onto `master`.** This project does not use topic branches for maintenance work; infra/version/upgrade commits land straight on `master` in small, focused commits (`scope: Title Case` subject). External contributions still arrive as PRs, but our own crank work does not branch.
+- **Version numbers.** `kcapi-sys`'s `major.minor` tracks the vendored libkcapi version (e.g. libkcapi v1.5.0 → `kcapi-sys` 1.5.0); its patch level is for `kcapi-sys`-only changes. `kcapi`'s own version (`0.1.x`) is independent — bump it a step per release. Tag each released version `vX.Y.Z` in its repo.
+
+### Turn-the-crank libkcapi upgrade
+
+Upgrade **one libkcapi version at a time** (iterate if several tags separate current from target), updating `kcapi-sys` then `kcapi`, committing on `master` as you go. Check upstream tags with `git ls-remote --tags --refs https://github.com/smuellerDD/libkcapi.git | sort -V`.
+
+Per version step:
+
+1. **kcapi-sys — point at the new libkcapi.** In `kcapi-sys/`, `git -C libkcapi checkout vX.Y.Z`, then **`cargo clean -p kcapi-sys`** (mandatory — `build.rs` does not list the libkcapi sources as `rerun-if-changed`, so without a clean cargo serves stale bindings), then `cargo build`. Confirm the regenerated `bindings.rs` reflects the new API (e.g. `grep -c 'pub fn kcapi_' .../out/bindings.rs`). Commit the `libkcapi` gitlink: *"libkcapi: Update Pointer to vX.Y.Z"*. Run the full gate (build/test/fmt/clippy).
+2. **kcapi-sys — bump + tag.** Bump `kcapi-sys/Cargo.toml` to the new version → commit *"Bump up kcapi-sys to Version X.Y.Z"* → `git tag vX.Y.Z`.
+3. **kcapi — adopt the new kcapi-sys.** In the parent, bump the `kcapi-sys` gitlink **and** the dependency `version` in `Cargo.toml` together → commit *"kcapi-sys: Update to vX.Y.Z of kcapi-sys"*.
+4. **kcapi — wrap any new algorithms.** If the new libkcapi added algorithm convenience functions (verify with the coverage diff above), add safe wrappers + tests in the relevant module → its own commit (e.g. *"md: Add SHA3 digest support"*). Tests for algorithms this build's kernel lacks get `#[ignore]`d.
+5. **kcapi — bump + tag.** Bump `kcapi/Cargo.toml` → commit *"Increment Package Minor Version"* → `git tag v0.1.x`. Run the full gate.
+6. **Sync + publish.** Fast-forward the standalone `../kcapi-sys` clone to match, then publish to crates.io (`kcapi-sys` first, then `kcapi`) and push. Nothing is pushed/published automatically — that is a deliberate manual step.
