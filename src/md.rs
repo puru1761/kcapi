@@ -212,8 +212,13 @@ impl KcapiHash {
     ///
     /// hash.update("Hello, World".as_bytes().to_vec())
     ///     .expect("Failed to update hash with input buffer");
+    ///
+    /// let slice: &[u8] = "Goodbye, World".as_bytes();
+    /// hash.update(slice)
+    ///     .expect("Failed to update hash with input buffer");
     /// ```
-    pub fn update(&self, buffer: Vec<u8>) -> KcapiResult<()> {
+    pub fn update(&self, buffer: impl AsRef<[u8]>) -> KcapiResult<()> {
+        let buffer = buffer.as_ref();
         unsafe {
             let ret = kcapi_sys::kcapi_md_update(
                 self.handle,
@@ -345,9 +350,13 @@ impl KcapiHash {
     ///
     /// let digest = hash.digest("Hello, World!".as_bytes().to_vec())
     ///     .expect("Failed to calculate message digest");
+    ///
+    /// let digest = hash.digest("Hello, World!".as_bytes())
+    ///     .expect("Failed to calculate message digest");
     /// ```
     ///
-    pub fn digest(&self, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
+    pub fn digest(&self, input: impl AsRef<[u8]>) -> KcapiResult<Vec<u8>> {
+        let input = input.as_ref();
         if self.digestsize == 0 {
             return Err(KcapiError {
                 code: -libc::EINVAL,
@@ -406,9 +415,12 @@ impl Drop for KcapiHash {
 /// ```
 /// let digest = kcapi::md::digest("sha1", "Hello, World!".as_bytes().to_vec())
 ///     .expect("Failed to calculate message digest");
+///
+/// let digest = kcapi::md::digest("sha1", "Hello, World!".as_bytes())
+///     .expect("Failed to calculate message digest");
 /// ```
 ///
-pub fn digest(alg: &str, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
+pub fn digest(alg: &str, input: impl AsRef<[u8]>) -> KcapiResult<Vec<u8>> {
     let hash = crate::md::KcapiHash::new(alg)?;
     hash.update(input)?;
     let output = hash.finalize()?;
@@ -435,11 +447,14 @@ pub fn digest(alg: &str, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
 ///
 /// ```
 /// let key = vec![0x41u8; 16];
-/// let hmac = kcapi::md::keyed_digest("hmac(sha1)", key, "Hello, World!".as_bytes().to_vec())
+/// let hmac = kcapi::md::keyed_digest("hmac(sha1)", key.clone(), "Hello, World!".as_bytes().to_vec())
+///     .expect("Failed to calculate keyed message digest");
+///
+/// let hmac = kcapi::md::keyed_digest("hmac(sha1)", key, "Hello, World!".as_bytes())
 ///     .expect("Failed to calculate keyed message digest");
 /// ```
 ///
-pub fn keyed_digest(alg: &str, key: Vec<u8>, input: Vec<u8>) -> KcapiResult<Vec<u8>> {
+pub fn keyed_digest(alg: &str, key: Vec<u8>, input: impl AsRef<[u8]>) -> KcapiResult<Vec<u8>> {
     let mut hmac = crate::md::KcapiHash::new(alg)?;
     hmac.setkey(key)?;
     hmac.update(input)?;
@@ -462,9 +477,12 @@ pub fn keyed_digest(alg: &str, key: Vec<u8>, input: Vec<u8>) -> KcapiResult<Vec<
 ///
 /// ```
 /// let digest = kcapi::md::sha1("Hello, World!".as_bytes().to_vec());
+///
+/// let digest = kcapi::md::sha1("Hello, World!".as_bytes());
 /// ```
 ///
-pub fn sha1(input: Vec<u8>) -> KcapiResult<[u8; SHA1_DIGESTSIZE]> {
+pub fn sha1(input: impl AsRef<[u8]>) -> KcapiResult<[u8; SHA1_DIGESTSIZE]> {
+    let input = input.as_ref();
     let mut digest = [0u8; SHA1_DIGESTSIZE];
 
     let ret: kcapi_sys::ssize_t;
@@ -501,9 +519,12 @@ pub fn sha1(input: Vec<u8>) -> KcapiResult<[u8; SHA1_DIGESTSIZE]> {
 ///
 /// ```
 /// let digest = kcapi::md::sha224("Hello, World!".as_bytes().to_vec());
+///
+/// let digest = kcapi::md::sha224("Hello, World!".as_bytes());
 /// ```
 ///
-pub fn sha224(input: Vec<u8>) -> KcapiResult<[u8; SHA224_DIGESTSIZE]> {
+pub fn sha224(input: impl AsRef<[u8]>) -> KcapiResult<[u8; SHA224_DIGESTSIZE]> {
+    let input = input.as_ref();
     let mut digest = [0u8; SHA224_DIGESTSIZE];
 
     let ret: kcapi_sys::ssize_t;
@@ -540,9 +561,12 @@ pub fn sha224(input: Vec<u8>) -> KcapiResult<[u8; SHA224_DIGESTSIZE]> {
 ///
 /// ```
 /// let digest = kcapi::md::sha256("Hello, World!".as_bytes().to_vec());
+///
+/// let digest = kcapi::md::sha256("Hello, World!".as_bytes());
 /// ```
 ///
-pub fn sha256(input: Vec<u8>) -> KcapiResult<[u8; SHA256_DIGESTSIZE]> {
+pub fn sha256(input: impl AsRef<[u8]>) -> KcapiResult<[u8; SHA256_DIGESTSIZE]> {
+    let input = input.as_ref();
     let mut digest = [0u8; SHA256_DIGESTSIZE];
 
     let ret: kcapi_sys::ssize_t;
@@ -579,9 +603,12 @@ pub fn sha256(input: Vec<u8>) -> KcapiResult<[u8; SHA256_DIGESTSIZE]> {
 ///
 /// ```
 /// let digest = kcapi::md::sha384("Hello, World!".as_bytes().to_vec());
+///
+/// let digest = kcapi::md::sha384("Hello, World!".as_bytes());
 /// ```
 ///
-pub fn sha384(input: Vec<u8>) -> KcapiResult<[u8; SHA384_DIGESTSIZE]> {
+pub fn sha384(input: impl AsRef<[u8]>) -> KcapiResult<[u8; SHA384_DIGESTSIZE]> {
+    let input = input.as_ref();
     let mut digest = [0u8; SHA384_DIGESTSIZE];
 
     let ret: kcapi_sys::ssize_t;
@@ -618,9 +645,12 @@ pub fn sha384(input: Vec<u8>) -> KcapiResult<[u8; SHA384_DIGESTSIZE]> {
 ///
 /// ```
 /// let digest = kcapi::md::sha512("Hello, World!".as_bytes().to_vec());
+///
+/// let digest = kcapi::md::sha512("Hello, World!".as_bytes());
 /// ```
 ///
-pub fn sha512(input: Vec<u8>) -> KcapiResult<[u8; SHA512_DIGESTSIZE]> {
+pub fn sha512(input: impl AsRef<[u8]>) -> KcapiResult<[u8; SHA512_DIGESTSIZE]> {
+    let input = input.as_ref();
     let mut digest = [0u8; SHA512_DIGESTSIZE];
 
     let ret: kcapi_sys::ssize_t;
@@ -658,10 +688,17 @@ pub fn sha512(input: Vec<u8>) -> KcapiResult<[u8; SHA512_DIGESTSIZE]> {
 ///
 /// ```
 /// let key = vec![0xffu8; 16];
+/// let hmac = kcapi::md::hmac_sha1("Hello, World!".as_bytes(), &key);
+///
 /// let hmac = kcapi::md::hmac_sha1("Hello, World!".as_bytes().to_vec(), key);
 /// ```
 ///
-pub fn hmac_sha1(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA1_DIGESTSIZE]> {
+pub fn hmac_sha1(
+    input: impl AsRef<[u8]>,
+    key: impl AsRef<[u8]>,
+) -> KcapiResult<[u8; SHA1_DIGESTSIZE]> {
+    let input = input.as_ref();
+    let key = key.as_ref();
     let mut hmac = [0u8; SHA1_DIGESTSIZE];
 
     let ret: kcapi_sys::ssize_t;
@@ -701,10 +738,17 @@ pub fn hmac_sha1(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA1_DIGESTSI
 ///
 /// ```
 /// let key = vec![0xffu8; 16];
+/// let hmac = kcapi::md::hmac_sha224("Hello, World!".as_bytes(), &key);
+///
 /// let hmac = kcapi::md::hmac_sha224("Hello, World!".as_bytes().to_vec(), key);
 /// ```
 ///
-pub fn hmac_sha224(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA224_DIGESTSIZE]> {
+pub fn hmac_sha224(
+    input: impl AsRef<[u8]>,
+    key: impl AsRef<[u8]>,
+) -> KcapiResult<[u8; SHA224_DIGESTSIZE]> {
+    let input = input.as_ref();
+    let key = key.as_ref();
     let mut hmac = [0u8; SHA224_DIGESTSIZE];
 
     let ret: kcapi_sys::ssize_t;
@@ -744,10 +788,17 @@ pub fn hmac_sha224(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA224_DIGE
 ///
 /// ```
 /// let key = vec![0xffu8; 16];
+/// let hmac = kcapi::md::hmac_sha256("Hello, World!".as_bytes(), &key);
+///
 /// let hmac = kcapi::md::hmac_sha256("Hello, World!".as_bytes().to_vec(), key);
 /// ```
 ///
-pub fn hmac_sha256(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA256_DIGESTSIZE]> {
+pub fn hmac_sha256(
+    input: impl AsRef<[u8]>,
+    key: impl AsRef<[u8]>,
+) -> KcapiResult<[u8; SHA256_DIGESTSIZE]> {
+    let input = input.as_ref();
+    let key = key.as_ref();
     let mut hmac = [0u8; SHA256_DIGESTSIZE];
 
     let ret: kcapi_sys::ssize_t;
@@ -787,10 +838,17 @@ pub fn hmac_sha256(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA256_DIGE
 ///
 /// ```
 /// let key = vec![0xffu8; 16];
+/// let hmac = kcapi::md::hmac_sha384("Hello, World!".as_bytes(), &key);
+///
 /// let hmac = kcapi::md::hmac_sha384("Hello, World!".as_bytes().to_vec(), key);
 /// ```
 ///
-pub fn hmac_sha384(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA384_DIGESTSIZE]> {
+pub fn hmac_sha384(
+    input: impl AsRef<[u8]>,
+    key: impl AsRef<[u8]>,
+) -> KcapiResult<[u8; SHA384_DIGESTSIZE]> {
+    let input = input.as_ref();
+    let key = key.as_ref();
     let mut hmac = [0u8; SHA384_DIGESTSIZE];
 
     let ret: kcapi_sys::ssize_t;
@@ -830,10 +888,17 @@ pub fn hmac_sha384(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA384_DIGE
 ///
 /// ```
 /// let key = vec![0xffu8; 16];
+/// let hmac = kcapi::md::hmac_sha512("Hello, World!".as_bytes(), &key);
+///
 /// let hmac = kcapi::md::hmac_sha512("Hello, World!".as_bytes().to_vec(), key);
 /// ```
 ///
-pub fn hmac_sha512(input: Vec<u8>, key: Vec<u8>) -> KcapiResult<[u8; SHA512_DIGESTSIZE]> {
+pub fn hmac_sha512(
+    input: impl AsRef<[u8]>,
+    key: impl AsRef<[u8]>,
+) -> KcapiResult<[u8; SHA512_DIGESTSIZE]> {
+    let input = input.as_ref();
+    let key = key.as_ref();
     let mut hmac = [0u8; SHA512_DIGESTSIZE];
 
     let ret: kcapi_sys::ssize_t;

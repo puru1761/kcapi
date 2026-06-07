@@ -946,11 +946,15 @@ impl VMSplice for KcapiAEAD {
 ///
 /// ```
 /// let nonce = vec![0x41u8; 10];
+/// let iv = kcapi::aead::ccm_nonce_to_iv(&nonce)
+///     .expect("Failed to convert AES-CCM nonce to IV");
+///
 /// let iv = kcapi::aead::ccm_nonce_to_iv(nonce)
 ///     .expect("Failed to convert AES-CCM nonce to IV");
 /// ```
 ///
-pub fn ccm_nonce_to_iv(nonce: Vec<u8>) -> KcapiResult<Vec<u8>> {
+pub fn ccm_nonce_to_iv(nonce: impl AsRef<[u8]>) -> KcapiResult<Vec<u8>> {
+    let nonce = nonce.as_ref();
     if nonce.len() > (AES_BLOCKSIZE - 2) {
         return Err(KcapiError {
             code: -libc::EINVAL,
@@ -966,7 +970,7 @@ pub fn ccm_nonce_to_iv(nonce: Vec<u8>) -> KcapiResult<Vec<u8>> {
         .expect("Failed to convert usize into u8");
 
     let mut iv = vec![0u8; AES_BLOCKSIZE];
-    iv[1..1 + nonce.len()].clone_from_slice(nonce.as_slice());
+    iv[1..1 + nonce.len()].clone_from_slice(nonce);
     iv[0] = padlen;
 
     Ok(iv)
